@@ -1,0 +1,2 @@
+#the following is required for the unit testing
+testfixtures>6.0.0; python_version >= "3.0"
