@@ -7,3 +7,9 @@ ptvsd==4.3.2
 requests==2.28.1
 cryptography>=2.8
 
+# nrp_core dependencies
+# TODO: delete when nrp_core and clients are properly installed
+docker
+grpcio-tools
+pytest
+psutil
