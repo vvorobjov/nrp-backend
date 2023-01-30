@@ -48,18 +48,18 @@ def set_up_logger(name: Optional[str] = None,
 
     :param: name: The name of the logger to be set up. 
                   None means root logger (same as logging.getLogger)
-    :param: logfile_name: name of the file created to collect logs
-    :param: level: The logger level. Defailts to INFO
+    :param: logfile_name: name of the file created to collect logs. None means stdout.
+    :param: level: The logger level. Defaults to INFO.
     
-    :return: the logger with the specified name configured as required
+    :return: the logger with the specified name configured as required.
     """
     # We initialize the logging in the startup.
     # This way we can access the already set up logger in the children modules.
 
-    logger = logging.getLogger(name if name else None)
+    logger = logging.getLogger(name if name is not None else None)
     
     logger.setLevel(level)
-    
+
     # rely on exception from FileHandler instead of checking for logfile_name not being None
     try:
         handler = logging.FileHandler(logfile_name)

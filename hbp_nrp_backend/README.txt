@@ -1,2 +1,1 @@
-TODO
-This is the implementation of the Experiment Backend for SP10 including the REST server implementation and supportive tooling.
+This is the implementation of the REST Backend of the Neuro Robotics Platform.

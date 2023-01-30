@@ -21,6 +21,10 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 # ---LICENSE-END
+"""
+A Wrapper for NrpCore clients instances making it amenable to be controlled interactively.
+It adds cooperative execution via thread synchronization and checks on simulation timeouts
+"""
 
 import logging
 import threading
@@ -35,6 +39,7 @@ logger = logging.getLogger(__name__)
 
 
 class NrpCoreWrapper:
+
     NRP_CORE_DEFAULT_ADDRESS_PORT = 'localhost:5345'  # TODO from some configuration instead?
 
     def __init__(self,
@@ -76,9 +81,12 @@ class NrpCoreWrapper:
         data_engine_index: int = exp_conf_utils.engine_index(exp_config,
                                                              "datatransfer_grpc_engine")
 
-        nrp_core_args: List[str] = [""]  # empty string to ease string joining with str.join()
-        nrp_core_args.append(f"EngineConfigs.{data_engine_index}.simulationID={sim_id}")
-        nrp_core_args_str = ' -o '.join(nrp_core_args).strip()
+        conf_overrides: List[str] = [""]  # empty string to ease string joining with str.join()
+        conf_overrides.append(f"EngineConfigs.{data_engine_index}.simulationID={sim_id}")
+        conf_overrides_str = ' -o '.join(conf_overrides).strip()
+
+        nrp_core_args = [conf_overrides_str]  # NOTE append nrp_core args e.g. "--cloglevel=trace"
+        nrp_core_args_str = " ".join(nrp_core_args)
 
         # Configurations Assumptions:
         # - address is 'localhost:5345'

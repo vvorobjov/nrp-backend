@@ -39,20 +39,36 @@ __author__ = 'NRP software team, Georg Hinkel, Ugo Albanese'
 
 
 logger = logging.getLogger(__name__)
+
 # NOTE
-# change here the logging level of the transition package 
-# with logging.getLogger("transitions").setLevel(level)
-# default is INFO
+# transition package logging is quite verbose, add one level to the parent one:
+# i.e. parent_level + 10
+logging.getLogger("transitions").setLevel(logger.getEffectiveLevel() + 10)
 
 # TODO: Think how to define the broker address better
 mqtt_broker_address_default = os.environ.get('MQTT_BROKER_ADDRESS', 'localhost')
 
 class SimulationLifecycle:
     """
-    Defines the lifecycle of a simulation
+    Defines the lifecycle of a simulation.
+
+    The Simulation is created in the 'created' initial state; the 'initialized' trigger makes it transition to 'paused'.
+    The 'started' trigger makes it move to started, 
+    then 'completed' to 'completed' and finally, 'stopped' to the 'stopped' final state.
+    From any running state, the 'failed' trigger will result in the final 'failed' state.
+
+    After a transition, state changes may be propagated on the 'synchronization_topic'
+    to other instances of SimulationLifecycle.
     """
 
-    STATES: List[str] = ['created', 'paused', 'started', 'completed', 'stopped', 'failed']
+    STATES: List[str] = [
+        'created',
+        'paused',   # Simulation resources have been initialized and waiting to start 
+        'started',  # Simulation is advancing
+        'completed',  # Simulation has completed, waiting to be stopped
+        'stopped',  # Simulation has been stopped, resources have been released.
+        'failed']   # Simulation has failed, resources have been released.
+
 
     INITIAL_STATE: str = 'created'
 
@@ -126,12 +142,12 @@ class SimulationLifecycle:
             logger.debug("Propagating simulation lifecycle state change from '%s' to '%s'",
                          source_state, dest_state)
             # For the transition out of the initial state (i.e. initialized), setting
-            # the retain flag is crucial since it allows to create two lifecycles asynchronously.
+            # the retain flag is crucial since it allows to create the two lifecycles asynchronously.
             # In fact, the Backend lifecycle transitions to initialized before the creation of
             # the simulation server lifecycle.
             # It's not a problem, since, upon connection to the broker, 
             # the retained initialization message will be delivered to simulation server lifecycle
-            # allowing it to correctly transition
+            # allowing it to transition correctly
             should_retain = self.is_initial_state(source_state)
 
             self.__mqtt_client.publish(self.synchronization_topic,
@@ -255,7 +271,7 @@ class SimulationLifecycle:
         self._add_transition(trigger='completed',
                              source='started', dest='completed')
         self._add_transition(trigger='stopped',
-                             source=['created', 'paused', 'started', 'completed'], dest='stopped',
+                             source=SimulationLifecycle.RUNNING_STATES, dest='stopped',
                              before='stop')
         self._add_transition(trigger='failed',
                              source=['paused', 'started', 'completed'], dest='failed',
@@ -348,11 +364,11 @@ class SimulationLifecycle:
 
             try:
                 self.failed()
-            except Exception as e2:
+            except Exception as ex2:
                 logger.error(
                     "Error trying to perform cleanup operation for command '%s'", command)
-                logger.exception(e2)
-                raise e2
+                logger.exception(ex2)
+                raise ex2
             
             raise ex
 
@@ -379,7 +395,7 @@ class SimulationLifecycle:
         if self.clear_synchronization_topic:
              # clear retained msg
             self.__mqtt_client.publish(self.synchronization_topic, "",
-                                       retain=True) 
+                                       retain=True)
 
         self.__mqtt_client.unsubscribe(self.synchronization_topic)
         self.__mqtt_client.loop_stop()
@@ -390,34 +406,34 @@ class SimulationLifecycle:
     # from pylint
     def initialize(self, state_change):
         """
-        Gets called when the simulation should be initialized
+        Gets called when the simulation should be initialized.
 
-        :param state_change: The state change that caused the simulation to initialize
+        :param state_change: The state change that caused the simulation to initialize.
         """
         raise NotImplementedError(
             "This state transition needs to be implemented in a concrete lifecycle")
 
     def start(self, state_change):
         """
-        Gets called when the simulation needs to be started
+        Gets called when the simulation needs to be started.
 
-        :param state_change: The state change that caused the simulation to start
+        :param state_change: The state change that caused the simulation to start.
         """
         raise NotImplementedError(
             "This state transition needs to be implemented in a concrete lifecycle")
 
     def pause(self, state_change):
         """
-        Gets called when the simulation needs to be paused
+        Gets called when the simulation needs to be paused.
 
-        :param state_change: The state change that caused the simulation to pause
+        :param state_change: The state change that caused the simulation to pause.
         """
         raise NotImplementedError(
             "This state transition needs to be implemented in a concrete lifecycle")
 
     def stop(self, state_change):
         """
-        Gets called when the simulation needs to be stopped, releases any simulation resource.
+        Gets called when the simulation needs to be stopped; it releases any simulation resource.
 
         :param state_change: The state change that caused the simulation to stop
         """
@@ -428,7 +444,7 @@ class SimulationLifecycle:
         """
         Gets called when the simulation fails.
 
-        :param state_change: The state change that caused the simulation to fail
+        :param state_change: The state change that caused the simulation to fail.
         """
         raise NotImplementedError(
             "This state transition needs to be implemented in a concrete lifecycle")
@@ -436,8 +452,8 @@ class SimulationLifecycle:
     # TODO reset support
     # def reset(self, state_change):
     #     """
-    #     Gets called when the simulation is reset
-    #     :param state_change: The state change that caused the simulation to reset
+    #     Gets called when the simulation is reset.
+    #     :param state_change: The state change that caused the simulation to reset.
     #     """
     #     raise NotImplementedError(
     #         "This state transition needs to be implemented in a concrete lifecycle")

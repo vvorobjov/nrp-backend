@@ -22,7 +22,13 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 # ---LICENSE-END
+"""
+This module implements the Simulation server application.
+It is managed by a SimulationServeInstance.
+"""
+
 from __future__ import annotations
+
 import argparse
 import json
 import logging
@@ -33,15 +39,15 @@ import threading
 import time
 from typing import List, Optional
 
-from hbp_nrp_commons import set_up_logger
 import hbp_nrp_commons.timer as timer
-from hbp_nrp_commons.simulation_lifecycle import SimulationLifecycle
-
 import hbp_nrp_simserver.server as simserver
 import hbp_nrp_simserver.server.experiment_configuration as exp_conf_utils
+import hbp_nrp_simserver.server.simulation_server_lifecycle as simserver_lifecycle
+from hbp_nrp_commons.simulation_lifecycle import SimulationLifecycle
 from hbp_nrp_simserver.server.mqtt_notificator import MQTTNotificator
 from hbp_nrp_simserver.server.nrp_script_runner import NRPScriptRunner
-import hbp_nrp_simserver.server.simulation_server_lifecycle as simserver_lifecycle
+
+from hbp_nrp_commons import set_up_logger
 
 # Warning: We do not use __name__  here, since it translates to "__main__"
 logger = logging.getLogger('hbp_nrp_simserver')
@@ -60,9 +66,7 @@ def __except_hook(ex_type, value, ex_traceback):
 
 
 class SimulationServer:
-    """
 
-    """
     STATUS_UPDATE_INTERVAL = 1.0
 
     def __init__(self, sim_settings: simserver.SimulationSettings):
@@ -210,50 +214,53 @@ class SimulationServer:
             logger.exception(e)
 
     def shutdown(self):
+
+        if not self.is_initialized:
+            logger.debug("Server un initialized. Can't shutdown. "
+                             "Simulation ID '%s'", self.simulation_id)
+            return
+
         try:
-            if self.is_initialized:
-                with self._notificator.task_notifier("Shutting down Simulation"):
-                    try:
+            with self._notificator.task_notifier("Shutting down Simulation"):
+                try:
+                    if self.__lifecycle.is_failed() or self.__lifecycle.is_stopped():
+                        logger.debug(
+                            "Lifecycle state is already in a final state."
+                            " Simulation ID '%s'", self.simulation_id)
+                    else:
                         # request and wait simulation stop
                         # __lifecycle will initiate NRPScriptRunner shutdown
-                        if not self.__lifecycle.is_failed() and not self.__lifecycle.is_stopped():
-                            logger.debug(
-                                "Requesting lifecycle to stop. Simulation ID '%s'", self.simulation_id)
-                            self.__lifecycle.stopped()
-                        else:
-                            logger.debug(
-                                "Lifecycle state is already in a final state. Simulation ID '%s'", self.simulation_id)
-                    except Exception as e:
-                        logger.error("Exception while requesting lifecycle to stop. "
+                        logger.debug("Requesting lifecycle to stop. "
                                      "Simulation ID '%s'", self.simulation_id)
-                        logger.exception(e)
-                    else:
-                        logger.debug("Waiting for lifecycle to stop. "
-                                     "Simulation ID '%s'", self.simulation_id)
-
-                        # TODO timeout and handle it # NOTE Waiting point
-                        self.__lifecycle.done_event.wait(10.)
-
-                        logger.debug("Lifecycle has stopped. "
-                                     "Simulation ID '%s'", self.simulation_id)
-                    finally:
-                        self.exit_state = self.__lifecycle.state
-                        self.__lifecycle = None
-                        self.__nrp_script_runner = None
-
-                # shutdown MQTTNotificator
-                try:
-                    # TODO Send a last message before closing?
-                    self._notificator.shutdown()
+                        self.__lifecycle.stopped()
                 except Exception as e:
-                    logger.error("The MQTT notificator could not be shut down. Simulation ID '%s'",
-                                 self.simulation_id)
+                    logger.error("Exception while requesting lifecycle to stop. "
+                                 "Simulation ID '%s'", self.simulation_id)
                     logger.exception(e)
+                else:
+                    logger.debug("Waiting for lifecycle to stop. "
+                                 "Simulation ID '%s'", self.simulation_id)
+
+                    # TODO timeout and handle it
+                    self.__lifecycle.done_event.wait(10.)  # NOTE Waiting point
+
+                    logger.debug("Lifecycle has stopped. "
+                                 "Simulation ID '%s'", self.simulation_id)
                 finally:
-                    self._notificator = None
-            else:
-                logger.debug(
-                    "Server unintialized. Can't shutdown. Simulation ID '%s'", self.simulation_id)
+                    self.exit_state = self.__lifecycle.state
+                    self.__lifecycle = None
+                    self.__nrp_script_runner = None
+
+            # shutdown MQTTNotificator
+            try:
+                self._notificator.shutdown()
+            except Exception as e:
+                logger.error("The MQTT notificator could not be shut down. Simulation ID '%s'",
+                             self.simulation_id)
+                logger.exception(e)
+            finally:
+                self._notificator = None
+
         finally:
             self.__status_update_timer.cancel_all()
 
@@ -314,7 +321,7 @@ def main():  # pragma: no cover
                         help="The simulation ID. Required")
     parser.add_argument('--logfile', dest='logfile',
                         help='specify the state machine logfile')
-    parser.add_argument("--verbose",  dest="verbose_logs", help="Increase output verbosity",
+    parser.add_argument("--verbose", dest="verbose_logs", help="Increase output verbosity",
                         default=False,
                         action="store_true")
 
@@ -348,7 +355,6 @@ def main():  # pragma: no cover
     # Simulation server is now initialized
 
     # Event that signals when to terminate, gets set when:
-    # - STDIN is closed 
     # - SIGTERM received
     # - after simserver.run has completed
     do_terminate_event = threading.Event()
@@ -357,20 +363,17 @@ def main():  # pragma: no cover
         print(f"Received '{sig}'. set do_terminate_event!. Simulation ID '{sim_settings.sim_id}'")
         do_terminate_event.set()
 
-    # SimulationServerInstance uses SIGINT and SIGTERM to send shutdown requests
+    # SimulationServerInstance uses SIGTERM to send shutdown requests
     # keep signal handler as simple as possible.
     # delegate actual work to terminator_thread
-    signal.signal(signal.SIGINT, handler=sig_handler)
-    signal.signal(signal.SIGTERM, handler=sig_handler)
+    # Shut down gracefully with SIGINT too.
+    termination_signals = [signal.SIGINT, signal.SIGTERM]
 
-    signal.pthread_sigmask(signal.SIG_UNBLOCK, [signal.SIGINT, signal.SIGTERM])
+    for signum in termination_signals:
+        signal.signal(signum, handler=sig_handler)
 
-    # shutdown_receiver_thread = threading.Thread(target=_receive_shutdown,
-    #                                             name="SimServerShutdownReceiver",
-    #                                             args=(do_terminate_event,
-    #                                                   sim_settings.sim_id),
-    #                                             daemon=True)
-    # shutdown_receiver_thread.start()
+    # unblock termination_signals
+    signal.pthread_sigmask(signal.SIG_UNBLOCK, termination_signals)
 
     # use a separate thread to handle requests since simserver.run() is blocking
     thread_return_value: List[simserver.ServerProcessExitCodes] = []
@@ -392,31 +395,23 @@ def main():  # pragma: no cover
         do_terminate_event.set()
         terminator_thread.join()  # TODO timeout? how long? # NOTE Waiting point
 
+    return (thread_return_value[0]
+            if thread_return_value else simserver.ServerProcessExitCodes.NO_ERROR
+            ).value
 
-    return (
-        thread_return_value[0] if thread_return_value else simserver.ServerProcessExitCodes.NO_ERROR).value
-
-
-def _receive_shutdown(terminate_event, sim_id):
-    while not terminate_event.is_set():
-        try:
-            input() # blocks on STDIN
-        except EOFError:
-            logger.debug("STDIN has been closed. Terminating. Simulation ID '%s'", sim_id)
-            terminate_event.set()
 
 def _handle_shutdown(sim_server: SimulationServer,
                      terminate_event: threading.Event,
                      return_value: List[simserver.ServerProcessExitCodes]) -> None:
     """
-    TODO update docs
     A thread that takes care of shutting down the simulation server
-    The process starts when terminate_event gets set
-    by, the SIGTERM handler or after SimulationServer.run() termination)
+    The process starts when terminate_event gets set by
+    the SIGTERM handler or after SimulationServer.run() termination.
 
-    If an error occurs during shutdown
-    simserver.ServerProcessExitCodes.SHUTDOWN_ERROR is appended to return_value,
-    simserver.ServerProcessExitCodes.NO_ERROR otherwise
+    IF an error occurred while the simulation was running appends
+    simserver.ServerProcessExitCodes.RUNNING_ERROR to return_value.
+    If an error occurs during shutdown SHUTDOWN_ERROR is appended,
+    otherwise NO_ERROR.
     """
     exit_codes = simserver.ServerProcessExitCodes
     sim_id = sim_server.simulation_settings.sim_id
@@ -425,8 +420,8 @@ def _handle_shutdown(sim_server: SimulationServer,
         logger.warning(
             "Shutdown. Simulation server not initialized. Simulation ID '%s'", sim_id)
     else:
-        # wait on closed STDIN or SIGTERM handler or SimulationServer.run() termination
-        terminate_event.wait() # NOTE Waiting point
+        # wait on closed signal handler or SimulationServer.run() termination
+        terminate_event.wait()  # NOTE Waiting point
 
         logger.info("Shutdown. Initiating. Simulation ID '%s'", sim_id)
         try:

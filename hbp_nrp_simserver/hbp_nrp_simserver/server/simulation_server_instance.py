@@ -109,7 +109,7 @@ class SimulationServerInstance:
 
         # TODO what to do with simulation server logs?
         # currently, it's uploaded to user storage on shutdown.
-        # If anything goes wrong while uploading it, it's deleted when the simulation directory
+        # If anything goes wrong while uploading it, they are deleted when the simulation directory
         # gets cleaned. Should we log it in the backend's logs too?
         logfile_path = os.path.join(self.sim_dir, f"simulation_{self.sim_id}.log")
 
@@ -137,11 +137,9 @@ class SimulationServerInstance:
 
         self.__sim_process = subprocess.Popen(
             args,
-            stdout=self.__sim_process_logfile, stderr=subprocess.STDOUT,# stdin=subprocess.PIPE, TODO PIPE
+            stdout=self.__sim_process_logfile, stderr=subprocess.STDOUT,
             close_fds=True,  # close inherited file descriptors
             env=env_sim
-            # receive SIGINT when parent process dies so to attempt clean shutdown
-            #preexec_fn=lambda: SimulationServerInstance.__set_pdeathsig(signal.SIGUSR1)
         )
 
         self.__sim_process_monitoring_thread = threading.Thread(target=self._monitor_sim_process,
@@ -160,27 +158,6 @@ class SimulationServerInstance:
             self._blocking_termination()
         finally:
             self.__sim_process = None
-
-    # @staticmethod
-    # def __set_pdeathsig(signal_to_receive: int):
-    #     """
-    #     Set PDEATHSIG for a process.
-        
-    #     The process will receive the specified signal when the parent process dies.
-
-    #     To be used as keyword argument 'preexec_fn' to subprocess.Popen.
-
-    #     :param: signal_to_send: Signal to receive when the parent process dies
-    #     :raise: OSError: call to prctl failed
-    #     """
-    #     # see https://blog.raylu.net/2021/04/01/set_pdeathsig.html
-
-    #     # https://github.com/torvalds/linux/blob/v5.11/include/uapi/linux/prctl.h#L9
-    #     PR_SET_PDEATHSIG: int = 1
-
-    #     libc = ctypes.CDLL(ctypes.util.find_library('c'), use_errno=True)
-    #     if libc.prctl(PR_SET_PDEATHSIG, signal_to_receive) != 0:
-    #         raise OSError(ctypes.get_errno(), 'SET_PDEATHSIG failed')
 
     def _monitor_sim_process(self) -> None:
         """
@@ -232,7 +209,6 @@ class SimulationServerInstance:
         Perform termination and block until the simulation server process has finished.
 
         Termination protocol is:
-        - shutdown request -> close STIDIN
         - termination request -> send SIGTERM
         - kill the process -> send SIGKILL
 
@@ -247,43 +223,19 @@ class SimulationServerInstance:
             return
 
         if self.__sim_process_monitoring_thread.is_alive():
-            
-            self.__terminating_process_event.set()
-            # We are kindly asking you to stop, please
-            logger.debug("Shutting down simulation - Sending SIGINT. "
+            logger.debug("Simulation process still alive - Sending SIGTERM. "
                          "Simulation ID: '%s'", self.sim_id)
-            
-            # asking for clean termination
-            #self.__sim_process.stdin.close() TODO PIPE
-            self.__sim_process.send_signal(signal.SIGINT)
+            try:
+                self.__sim_process.terminate()
+                self.__sim_process_monitoring_thread.join(timeout) # NOTE Waiting point
 
-            import time
-            start = time.time()
-            
-            self.__sim_process_monitoring_thread.join()
-
-            shutdown_time = time.time() - start
-
-            
-            #self.__sim_process_monitoring_thread.join() # NOTE Waiting point
-            logger.debug("Simulation process took %s secs to shutdown. "
-                         "Simulation ID: '%s'", shutdown_time, self.sim_id)
-            
-            if self.__sim_process_monitoring_thread.is_alive():
-                # Seriously, just stop now
-                logger.debug("Simulation process still alive - Sending SIGTERM. "
-                             "Simulation ID: '%s'", self.sim_id)
-                try:
-                    self.__sim_process.terminate()
+                if self.__sim_process_monitoring_thread.is_alive():
+                    logger.debug("Killing the simulation process - Sending SIGKILL. "
+                                    "Some child processes could still be running."
+                                    "Simulation ID: '%s'", self.sim_id)
+                    self.__sim_process.kill()
                     self.__sim_process_monitoring_thread.join(timeout) # NOTE Waiting point
+            except ProcessLookupError:
+                logger.debug("Simulation process not found while sending signal - Ignore."
+                                "Simulation ID: '%s'", self.sim_id)
 
-                    if self.__sim_process_monitoring_thread.is_alive():
-                        logger.debug("Killing the simulation process - Sending SIGKILL. "
-                                     "Some child processes could still be running."
-                                     "Simulation ID: '%s'", self.sim_id)
-                        # Well, dodge this
-                        self.__sim_process.kill()
-                        self.__sim_process_monitoring_thread.join(timeout) # NOTE Waiting point
-                except ProcessLookupError:
-                    logger.debug("Simulation process not found while sending signal - Ignore."
-                                 "Simulation ID: '%s'", self.sim_id)

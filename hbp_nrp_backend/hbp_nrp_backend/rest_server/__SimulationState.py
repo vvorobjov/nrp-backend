@@ -89,7 +89,6 @@ class SimulationState(Resource):
             raise NRPServicesClientErrorException(
                 ErrorMessages.SIMULATION_NOT_FOUND_404, error_code=404)
 
-        # TODO TEST
         if not UserAuthentication.can_view(simulation):
             raise NRPServicesWrongUserException()
 
@@ -122,7 +121,6 @@ class SimulationState(Resource):
             raise NRPServicesClientErrorException(
                 ErrorMessages.SIMULATION_NOT_FOUND_404, error_code=404)
 
-        # TODO TEST
         if not UserAuthentication.can_modify(simulation):
             raise NRPServicesWrongUserException(
                 ErrorMessages.SIMULATION_PERMISSION_401)

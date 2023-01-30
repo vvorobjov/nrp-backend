@@ -52,9 +52,12 @@ MAX_STOP_TIMEOUT: float = 20.
 
 class NRPScriptRunner:
     """
-    Runs nrp-core experiments "main script" as python script.
+    Executes nrp-core experiments "main script" as a python script.
+    
     The script excecution can be started, paused and stopped.
-
+    The script is expected to use the injected 'nrp' handler
+    (an instance of NRPCoreWrapper) and call its run_loop method
+    until a NRPSimulationTimeout is raised.
     """
     def __init__(self,
                  sim_settings: simserver.SimulationSettings,
@@ -80,10 +83,10 @@ class NRPScriptRunner:
 
         self.__exec_thread: Optional[threading.Thread] = None
 
-        # started event  signals __exec_thread to start 
+        # started event: signals __exec_thread to start 
         # set in start() cleared in pause()
         self.__exec_started_event: threading.Event = threading.Event()
-        # started event signals __exec_thread to stop
+        # started event: signals __exec_thread to stop
         # set once in stop(). Never cleared
         self.__exec_stopped_event: threading.Event = threading.Event() # one-shot. Never cleared
 

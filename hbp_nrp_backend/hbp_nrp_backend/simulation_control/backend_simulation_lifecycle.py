@@ -46,7 +46,7 @@ from hbp_nrp_simserver.server.simulation_server_instance import SimulationServer
 from hbp_nrp_backend import NRPServicesGeneralException
 from hbp_nrp_commons import zip_util
 
-import  hbp_nrp_backend.simulation_control.simulation as sim # NOTE don't move, circular import
+import hbp_nrp_backend.simulation_control.simulation as sim # NOTE don't move, circular import
 
 
 __author__ = 'NRP software team, Georg Hinkel, Manos Angelidis, Ugo Albanese'
@@ -139,7 +139,6 @@ class BackendSimulationLifecycle(SimulationLifecycle):
             exclude_list = ["*.log.zip", "logs/", '__pycache__/']
 
             # clone the experiment files in local temporary directory
-            # TODO TEST
             self.__storage_client.clone_all_experiment_files(
                 token=user_auth.UserAuthentication.get_header_token(),
                 experiment=sim.experiment_id,
@@ -244,7 +243,6 @@ class BackendSimulationLifecycle(SimulationLifecycle):
 
         :param _state_change: The state change that led to resetting the simulation
         """
-        # TODO reset. raise NotImplementError or just log?
         logger.info("Simulation reset NOT IMPLEMENTED. Simulation ID: '%s'", str(self.simulation.sim_id))
 
 
@@ -273,8 +271,6 @@ class BackendSimulationLifecycle(SimulationLifecycle):
 
         # upload zip to user storage
         try:
-            pass
-            # TODO TEST
             with open(temp_dest, 'rb') as zipped_logs:
                 self.__storage_client.create_or_update(
                     self.simulation.token,
