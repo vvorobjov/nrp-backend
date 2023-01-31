@@ -44,18 +44,18 @@ MQTT_TOPIC_PREFIX = 'nrp_simulation'
 # The MQTT topic on which the server will publish, every second,
 # the status of the 'sim_id' simulation.
 # The Message is a JSON object specified in SimulationServer._create_state_message:
-TOPIC_STATUS = lambda sim_id: f'/{MQTT_TOPIC_PREFIX}/{sim_id}/status'
+TOPIC_STATUS = lambda sim_id: f'{MQTT_TOPIC_PREFIX}/{sim_id}/status'
 
 # The MQTT topic used to synchronize the simulation lifecycles of the 'sim_id' simulation .
 # Used in hbp_nrp_commons.sim_lifecycle.SimulationLifecycle and subclasses
 # in the method __propagate_state_changes.
 # The Message is a JSON object specified in SimulationLifecycle.__propagate_state_changes
-TOPIC_LIFECYCLE = lambda sim_id: f'/{MQTT_TOPIC_PREFIX}/{sim_id}/lifecycle'
+TOPIC_LIFECYCLE = lambda sim_id: f'{MQTT_TOPIC_PREFIX}/{sim_id}/lifecycle'
 
 # The MQTT topic on which the server will publish any runtime error caused
 # by the 'sim_id' simulation.
 # The Message is a JSON object specified in simulation_server.SimulationServer.publish_error
-TOPIC_ERROR = lambda sim_id: f'/{MQTT_TOPIC_PREFIX}/{sim_id}/runtime_error'
+TOPIC_ERROR = lambda sim_id: f'{MQTT_TOPIC_PREFIX}/{sim_id}/runtime_error'
 
 
 @dataclass
