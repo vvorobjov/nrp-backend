@@ -25,6 +25,7 @@
 This package defines the simulation lifecycle such as used in the NRP
 """
 
+import os
 import json
 import logging
 import time
@@ -43,6 +44,8 @@ logger = logging.getLogger(__name__)
 # with logging.getLogger("transitions").setLevel(level)
 # default is INFO
 
+# TODO: Think how to define the broker address better
+mqtt_broker_address_default = os.environ.get('MQTT_BROKER_ADDRESS', 'localhost')
 
 class SimulationLifecycle:
     """
@@ -213,7 +216,7 @@ class SimulationLifecycle:
                  initial_state: str = INITIAL_STATE,
                  propagated_destinations: Optional[List[str]] = STATES,
                  mqtt_client_id: Optional[str] = None,
-                 mqtt_broker_host: str = "localhost", mqtt_broker_port: int = 1883,
+                 mqtt_broker_host: str = mqtt_broker_address_default, mqtt_broker_port: int = 1883,
                  clear_synchronization_topic=False):
         """
         Creates a new synchronization lifecycle for the given topic
@@ -285,6 +288,7 @@ class SimulationLifecycle:
         self.__mqtt_client.message_callback_add(synchronization_topic,
                                                 self.__synchronized_lifecycle_changed)
 
+        logger.debug("Connecting to the MQTT broker at %s:%s", str(self.mqtt_broker_host), str(self.mqtt_broker_port))
         self.__mqtt_client.connect(self.mqtt_broker_host, port=self.mqtt_broker_port)
         self.__mqtt_client.loop_start()  # start message processing thread
 

@@ -66,7 +66,9 @@ class _Settings:
             raise Exception(
                 "Simulation directory symlink location is not specified in NRP_SIMULATION_DIR")
 
-        self.storage_uri = 'http://localhost:9000/storage'
+        storage_address = os.environ.get('STORAGE_ADDRESS', 'localhost')
+        storage_port = os.environ.get('STORAGE_PORT', '9000')
+        self.storage_uri = 'http://{0}:{1}/storage'.format(storage_address, storage_port)
 
         self.MAX_SIMULATION_TIMEOUT = 24 * 60 * 60   # 1 day in seconds
 
