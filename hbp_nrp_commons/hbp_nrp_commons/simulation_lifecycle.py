@@ -280,9 +280,6 @@ class SimulationLifecycle:
                              source='created', dest='failed',
                              before='stop')
         # TODO reset support
-        # self._add_transition(trigger='initialized',
-        #                      source=['paused', 'started', 'completed'], dest='paused',
-        #                      before='reset')
 
         self.synchronization_topic = synchronization_topic
         self.clear_synchronization_topic = clear_synchronization_topic

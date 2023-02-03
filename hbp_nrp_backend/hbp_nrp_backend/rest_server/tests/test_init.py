@@ -22,41 +22,32 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 # ---LICENSE-END
 """
-This module contains the REST implementation
-for retrieving the versions of all NRP python component packages.
+Code for testing all classes in hbp_nrp_backend.rest_server.__init__
 """
 
-__author__ = 'NRP software team'
+import unittest
+from hbp_nrp_backend import NRPServicesGeneralException, NRPServicesStateException
 
-import importlib
 
-from flask_restful import Resource
-
-from . import ErrorMessages, docstring_parameter
-from .RestSyncMiddleware import RestSyncMiddleware
-
-COMPONENTS_PACKAGES_NAMES = ['hbp_nrp_backend', 'hbp_nrp_simserver']
-COMPONENTS_PACKAGES = {c_p_name: importlib.import_module(c_p_name)
-                       for c_p_name in COMPONENTS_PACKAGES_NAMES}
-
-VERSIONS = {name: getattr(module, "__version__")
-            for name, module in COMPONENTS_PACKAGES.items()}
-
-class Version(Resource):
+class TestInit(unittest.TestCase):
     """
-    Implements the REST service providing the user with the versions
-    of all NRP python COMPONENTS_PACKAGES_NAMES.
+    This class tests all classes in hbp_nrp_backend.rest_server.__init__
     """
-    @RestSyncMiddleware.threadsafe
-    @docstring_parameter(ErrorMessages.VERSIONS_RETRIEVED_200)
-    def get(self):
+
+    def test_nrp_services_general_exception(self):
         """
-        Returns the versions of all NRP python component packages.
-
-        :> json string hbp_nrp_backend: version
-        :> json string hbp_nrp_simserver: version
-
-        :status 200: {0}
+        This method tests the class hbp_nrp_backend.rest_server.NRPServicesGeneralException
         """
+        nsge = NRPServicesGeneralException("StringA", "StringB")
+        self.assertEqual(nsge.__str__(), "'StringA' (StringB)")
 
-        return VERSIONS, 200
+    def test_nrp_services_state_exception(self):
+        """
+        This method tests the class hbp_nrp_backend.rest_server.NRPServicesStateException
+        """
+        nsge = NRPServicesStateException("StringA")
+        self.assertEqual(nsge.__str__(), "'StringA' (State Transition error)")
+
+
+if __name__ == '__main__':
+    unittest.main()

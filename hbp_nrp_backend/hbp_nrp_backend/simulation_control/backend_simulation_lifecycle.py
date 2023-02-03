@@ -61,12 +61,6 @@ class BackendSimulationLifecycle(SimulationLifecycle):
 
     # Backend should only state change towards these states.
     # In fact, Backend can't can't make a simulation fail.
-    def __get_propagated_destinations():
-        states = list(SimulationLifecycle.STATES)
-        states.remove('failed')
-        states.remove('stopped')
-        return states
-
     propagated_destinations = SimulationLifecycle.RUNNING_STATES  # anything but final states
 
     def __init__(self, simulation: sim.Simulation, initial_state: str = 'created'):

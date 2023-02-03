@@ -22,41 +22,30 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 # ---LICENSE-END
 """
-This module contains the REST implementation
-for retrieving the versions of all NRP python component packages.
+Unit tests for the service that retrieves python versions
 """
 
-__author__ = 'NRP software team'
+__author__ = 'NRP software team, AxelVonArnim, LucGuyot'
 
-import importlib
+import hbp_nrp_backend
+import hbp_nrp_simserver
 
-from flask_restful import Resource
+import unittest
+import json
+from hbp_nrp_backend.rest_server.tests import RestTest
 
-from . import ErrorMessages, docstring_parameter
-from .RestSyncMiddleware import RestSyncMiddleware
 
-COMPONENTS_PACKAGES_NAMES = ['hbp_nrp_backend', 'hbp_nrp_simserver']
-COMPONENTS_PACKAGES = {c_p_name: importlib.import_module(c_p_name)
-                       for c_p_name in COMPONENTS_PACKAGES_NAMES}
+class TestVersion(RestTest):
 
-VERSIONS = {name: getattr(module, "__version__")
-            for name, module in COMPONENTS_PACKAGES.items()}
+    def test_version_get(self):
+        response = self.client.get('/version')
+        self.assertEqual(response.status_code, 200)
+        expected_response = {'hbp_nrp_backend': str(hbp_nrp_backend.__version__),
+                             'hbp_nrp_simserver': str(hbp_nrp_simserver.__version__)
+                             }
+        erd = json.dumps(expected_response)
+        self.assertEqual(response.data.strip().decode(), erd)
 
-class Version(Resource):
-    """
-    Implements the REST service providing the user with the versions
-    of all NRP python COMPONENTS_PACKAGES_NAMES.
-    """
-    @RestSyncMiddleware.threadsafe
-    @docstring_parameter(ErrorMessages.VERSIONS_RETRIEVED_200)
-    def get(self):
-        """
-        Returns the versions of all NRP python component packages.
 
-        :> json string hbp_nrp_backend: version
-        :> json string hbp_nrp_simserver: version
-
-        :status 200: {0}
-        """
-
-        return VERSIONS, 200
+if __name__ == '__main__':
+    unittest.main()

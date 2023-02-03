@@ -51,7 +51,6 @@ class StorageClient:
 
     __instance = None
     _sim_dir = None
-    __resources_path = None
 
     def __new__(cls):
         """
@@ -71,13 +70,8 @@ class StorageClient:
         """
         self.__proxy_url = Settings.storage_uri
 
-        # Paths related to the textures
-        # self.__texture_directories = (Settings.local_gazebo_path
-        #                               + Settings.gzweb_assets_media_path
-        #                               + Settings.gzweb_custom_textures_path)
-
         # folders in resources we want to filter
-        self.__filtered_resources = ['textures']
+        self.__filtered_resources = []
 
     def set_sim_dir(self, sim_dir):
         """
@@ -125,7 +119,7 @@ class StorageClient:
 
     def list_experiments(self, token: str, context_id, get_all=False, name=None):
         """
-        Lists the experiments the user has access to depending on his token
+        Lists the experiments the user has access to depending on his token.
 
         :param token: a valid token to be used for the request
         :param context_id: the context_id if we are using collab storage
@@ -361,7 +355,8 @@ class StorageClient:
             if filename in folder_entry['name']:
                 clone_destination: str = os.path.join(self._sim_dir, filename)
                 with open(clone_destination, "wb") as f:
-                    f.write(self.get_file(token, experiment, filename, by_name=True))
+                    f.write(self.get_file(
+                        token, experiment, filename, by_name=True))
                 break
         else:
             return None  # filename not found
@@ -389,7 +384,8 @@ class StorageClient:
         :param filename: the file name
         :param extensions: the extensions list to check
         """
-        return os.path.basename(filename).lower() in extensions
+        _, ext = os.path.splitext(filename)
+        return ext.lower() in extensions
 
     def copy_folder_content_to_tmp(self, token: str, folder):
         """
@@ -412,14 +408,16 @@ class StorageClient:
 
                 if entry_type == 'folder':
                     if entry_name not in self.__filtered_resources:
-                        entry_to_copy['fullpath'] = os.path.join(folder_path, entry_name)
+                        entry_to_copy['fullpath'] = os.path.join(
+                            folder_path, entry_name)
                         child_folders.append(entry_to_copy)
-                
+
                 elif entry_type == 'file':
-                    folder_tmp_path = str(os.path.join(self._sim_dir, folder_path))
-                    
+                    folder_tmp_path = str(
+                        os.path.join(self._sim_dir, folder_path))
+
                     SimUtil.makedirs(folder_tmp_path)
-                    
+
                     self.copy_file_content(
                         token,
                         folder_tmp_path,
@@ -445,7 +443,8 @@ class StorageClient:
         :return: A dictionary containing the paths to the experiment files
         """
 
-        self._sim_dir = destination_dir if destination_dir else tempfile.mkdtemp(prefix='nrp.')
+        self._sim_dir = destination_dir if destination_dir else tempfile.mkdtemp(
+            prefix='nrp.')
         # TODO Resources self.__resources_path = os.path.join(self._sim_dir, "resources")
 
         exclude_rules = exclude if exclude is not None else []
@@ -484,126 +483,24 @@ class StorageClient:
 
         return destination_dir
 
+    def get_folder_uuid_by_name(self, token, context_id, folder_name):
+        """
+        Returns the uuid of a folder provided its name
+
+        :param token: a valid token to be used for the request
+        :param context_id: the context_id of the collab
+        :param folder_name: the name of the folder
+        :return: if found, the uuid of the named folder
+        """
+        folders = self.list_experiments(
+            token, context_id, get_all=True, name=folder_name)
+
+        for folder in (f for f in folders if f["name"] == folder_name):
+            return folder["uuid"]
+
     # Unused, but useful when these features will be restored
     #
-    # def get_model_path(self, token, context_id, model):
-    #     """
-    #         Returns the path to a custom model
-    #
-    #         :param token: a valid token to be used for the request
-    #         :param context_id: the context_id of the collab
-    #         :param model: model object, check class Model
-    #         :return: if found, the uuid of the named folder
-    #     """
-    #     try:
-    #         request_url = '{proxy_url}/storage/models/path/{model_type}/{model_name}'.format(
-    #             proxy_url=self.__proxy_url,
-    #             model_type=ModelType.types[model.type],
-    #             model_name=model.name
-    #         )
-    #         res = requests.get(request_url,
-    #                            headers={'Authorization': f'Bearer {token}',
-    #                                     'context-id': context_id})
-    #
-    #         if res.status_code < 200 or res.status_code >= 300:
-    #             raise Exception(
-    #                 'Failed to communicate with the storage server, status code {}'
-    #                 .format(res.status_code))
-    #
-    #         return res.text
-    #     except requests.exceptions.ConnectionError as err:
-    #         logger.exception(err)
-    #         raise err
-    #
-    # def get_model(self, token, context_id, model):
-    #     """
-    #     Returns the content of a custom model file
-    #
-    #     :param token: a valid token to be used for the request
-    #     :param context_id: the context_id of the collab
-    #     :param model: the model object, check class Model
-    #     :return: if found, returns the content of the model as a binary string
-    #     """
-    #     try:
-    #         request_url = '{proxy_url}/storage/models/{model_type}/{model_name}'.format(
-    #             proxy_url=self.__proxy_url,
-    #             model_type=ModelType.types[model.type],
-    #             model_name=model.name
-    #         )
-    #         res = requests.get(request_url,
-    #                            headers={'Authorization': f'Bearer {token}',
-    #                                     'context-id': context_id})
-    #
-    #         if res.status_code < 200 or res.status_code >= 300:
-    #             raise Exception(
-    #                 'Failed to communicate with the storage server, status code {}'
-    #                 .format(res.status_code))
-    #
-    #         return res.content
-    #     except requests.exceptions.ConnectionError as err:
-    #         logger.exception(err)
-    #         raise err
-    #
-    # def get_models_list(self, token, context_id, model_type):
-    #     """
-    #     Returns a list with custom models of a certain model_type
-    #
-    #     :param token: a valid token to be used for the request
-    #     :param context_id: the context_id of the collab
-    #     :param model_type: the type of the model defined in ModelType
-    #     :return: if found, list of Models objects
-    #     """
-    #     try:
-    #         request_url = '{proxy_url}/storage/models/all/{modelType}'.format(
-    #             proxy_url=self.__proxy_url,
-    #             modelType=ModelType.types[model_type]
-    #         )
-    #         res = requests.get(request_url,
-    #                            headers={'Authorization': f'Bearer {token}',
-    #                                     'context-id': context_id})
-    #         if res.status_code < 200 or res.status_code >= 300:
-    #             raise Exception(
-    #                 f'Failed to communicate with the storage server,'
-    #                 f' status code {str(res.status_code)}')
-    #         list_models = []
-    #         for model in res.json():
-    #             model_type_key = ModelType.getResourceType(model['type'])
-    #             model = Model(model['name'], model_type_key, model['path'])
-    #             list_models.append(model)
-    #         return list_models
-    #
-    #     except requests.exceptions.ConnectionError as err:
-    #         logger.exception(err)
-    #         raise err
-    #
-    # def get_textures_list(self, experiment, token):
-    #     """
-    #     Returns the contents of the resources/textures experiment folder
-    #
-    #     :param experiment: the name of the experiment
-    #     :param token: a valid token to be used for the request
-    #     :return: if found, the list of textures
-    #     """
-    #     try:
-    #         request_url = '{proxy_url}/storage/{experiment}{textures_path}'.format(
-    #             proxy_url=self.__proxy_url,
-    #             experiment=experiment,
-    #             textures_path=urllib.parse.quote_plus('/resources/textures')
-    #         )
-    #
-    #         res = requests.get(
-    #             request_url,
-    #             headers={'Authorization': f'Bearer {token}'})
-    #
-    #         if res.status_code < 200 or res.status_code >= 300:
-    #             raise Exception(
-    #                 f'Failed to communicate with the storage server,'
-    #                 f'status code {str(res.status_code)}')
-    #         return res.json()
-    #     except requests.exceptions.ConnectionError as err:
-    #         logger.exception(err)
-    #         raise err
-    #
+    # TODO Resources
     # def copy_resources_folder(self, token, experiment):
     #     """
     #     Copy the resources folder located in storage/experiment into simulation folder
@@ -622,19 +519,5 @@ class StorageClient:
     #             'An error happened trying to copy resources to tmp ')
     #         raise
     #
-    # def get_folder_uuid_by_name(self, token, context_id, folder_name):
-    #     """
-    #     Returns the uuid of a folder provided its name
-    #
-    #     :param token: a valid token to be used for the request
-    #     :param context_id: the context_id of the collab
-    #     :param folder_name: the name of the folder
-    #     :return: if found, the uuid of the named folder
-    #     """
-    #     folders = self.list_experiments(
-    #         token, context_id, get_all=True, name=folder_name)
-    #
-    #     for folder in (f for f in folders if f["name"] == folder_name):
-    #         return folder["uuid"]
 
     # HELPER FUNCTIONS

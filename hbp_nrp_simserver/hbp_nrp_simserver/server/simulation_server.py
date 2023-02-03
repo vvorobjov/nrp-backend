@@ -66,7 +66,6 @@ def __except_hook(ex_type, value, ex_traceback):
 
 
 class SimulationServer:
-
     STATUS_UPDATE_INTERVAL = 1.0
 
     def __init__(self, sim_settings: simserver.SimulationSettings):
@@ -217,7 +216,7 @@ class SimulationServer:
 
         if not self.is_initialized:
             logger.debug("Server un initialized. Can't shutdown. "
-                             "Simulation ID '%s'", self.simulation_id)
+                         "Simulation ID '%s'", self.simulation_id)
             return
 
         try:

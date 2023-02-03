@@ -69,6 +69,6 @@ class SimulationControl(Resource):
                 ErrorMessages.SIMULATION_NOT_FOUND_404, error_code=404)
 
         if not UserAuthentication.can_view(simulation):
-            raise NRPServicesWrongUserException()
+            raise NRPServicesWrongUserException(message=ErrorMessages.SIMULATION_PERMISSION_401_VIEW)
 
         return simulation, 200

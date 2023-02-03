@@ -66,13 +66,13 @@ class SimulationState(Resource):
         required_request_fields = ["state"]
 
     @docstring_parameter(ErrorMessages.SIMULATION_NOT_FOUND_404,
-                         ErrorMessages.SIMULATION_PERMISSION_401,
+                         ErrorMessages.SIMULATION_PERMISSION_401_VIEW,
                          ErrorMessages.STATE_RETRIEVED_200)
     @marshal_with(_State.resource_fields)
     def get(self, sim_id):
         """
-        Gets the state of the simulation with the specified simulation id. Possible values are:
-        created, initialized, started, paused, stopped
+        Gets the state of the simulation with the specified simulation id.
+        Possible values are simulation_lifecycle.SimulationLifecycle.STATES.
 
         :param sim_id: The simulation id
 
@@ -90,8 +90,9 @@ class SimulationState(Resource):
                 ErrorMessages.SIMULATION_NOT_FOUND_404, error_code=404)
 
         if not UserAuthentication.can_view(simulation):
-            raise NRPServicesWrongUserException()
+            raise NRPServicesWrongUserException(message=ErrorMessages.SIMULATION_PERMISSION_401_VIEW)
 
+        # NOTE "state" attribute of "simulation" gets returned thanks to marshal_with
         return simulation, 200
 
     @docstring_parameter(ErrorMessages.SIMULATION_NOT_FOUND_404,

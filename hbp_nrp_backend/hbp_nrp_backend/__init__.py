@@ -52,7 +52,7 @@ class NRPServicesStateException(NRPServicesGeneralException):
     """
 
     def __init__(self, message):
-        super().__init__(message, "State Transition error", 400)
+        super().__init__(message, error_type="State Transition error", error_code=400)
 
 
 class NRPServicesWrongUserException(NRPServicesClientErrorException):
@@ -66,8 +66,8 @@ class NRPServicesWrongUserException(NRPServicesClientErrorException):
     def __init__(self,
                 message="You need to be the simulation owner to apply your changes "
                 "or the simulation should be shared with you for you to be able to access it."
-                "Wrong user",):
-        super().__init__(message, 401)
+                "Wrong user"):
+        super().__init__(message, error_code=401)
 
 
 def get_date_and_time_string():

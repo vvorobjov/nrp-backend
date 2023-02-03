@@ -68,7 +68,7 @@ def __process_args():  # pragma: no cover
     parser.add_argument("--verbose",  dest="verbose_logs", help="Increase output verbosity",
                         default=False,
                         action="store_true")
-    
+
     args = parser.parse_args()
 
     # debugging support with VScode and PyCharm
@@ -92,7 +92,8 @@ def __process_args():  # pragma: no cover
             print("VSCode debugging server active, waiting for client...")
             debugpy.wait_for_client()  # blocks execution until client is attached
         else:
-            print(f'Unsupported IDE "{nrp_debug_env_var}" for debugging: Ignoring argument')
+            print(
+                f'Unsupported IDE "{nrp_debug_env_var}" for debugging: Ignoring argument')
 
     return args
 
@@ -103,7 +104,8 @@ if __name__.find("uwsgi_file") == 0:  # pragma: no cover
     _args = __process_args()
 
     # Initialize root logger, any logger in this process will inherit the settings
-    set_up_logger(name=None, level=logging.DEBUG if _args.verbose_logs else logging.INFO)
+    set_up_logger(
+        name=None, level=logging.DEBUG if _args.verbose_logs else logging.INFO)
     logger.warning("Application started with uWSGI or any other framework. logging "
                    "to console by default!")
 
@@ -123,7 +125,7 @@ if __name__ == '__main__':  # pragma: no cover
     # Initialize root logger, any logger in this process will inherit the settings
     set_up_logger(name=None, logfile_name=_args.logfile,
                   level=logging.DEBUG if _args.verbose_logs else logging.INFO)
-    
+
     port = DEFAULT_PORT
 
     try:

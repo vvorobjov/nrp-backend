@@ -64,10 +64,8 @@ class UserAuthentication:
         request_parser.add_argument(header_name,
                                     type=str, location='headers')
         header_value = request_parser.parse_args(request)[header_name]
-        if header_value is None:
-            header_value = default_value
 
-        return header_value
+        return header_value if header_value is not None else default_value
 
     @staticmethod
     def get_x_user_name_header():

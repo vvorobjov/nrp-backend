@@ -87,7 +87,7 @@ class SimulationService(Resource):
 
             # check request fields
             if missing_fields := [f for f in Simulation.required_request_fields if f not in body]:
-                raise NRPServicesClientErrorException(f'{" ".missing_fields.join()} not given.')
+                raise NRPServicesClientErrorException(f'{" ".join(missing_fields)} not given.')
 
             # check if another sim is running (i.e. any sim not in a final state)
             if [s for s in simulations if not SimulationLifecycle.is_final_state(s.state)]:
@@ -105,7 +105,7 @@ class SimulationService(Resource):
         sim_state = body.get('state', Simulation.DEFAULT_STATE)
         sim_owner = UserAuthentication.get_user()
         ctx_id = body.get('ctxId', None)
-        token = UserAuthentication.get_header_token() # TODO TEST
+        token = UserAuthentication.get_header_token()
 
         sim = Simulation(sim_id,
                          sim_experiment_id,
@@ -117,7 +117,7 @@ class SimulationService(Resource):
                          token=token)
         simulations.append(sim)
 
-        sim.state = "initialized"  # move to initialize state
+        sim.state = "initialized"  # initialized transition
 
         # 'Location' is the URL at which the newly created resource is available
         return sim, 201, {'Location': api.url_for(SimulationControl, sim_id=sim_id)} 

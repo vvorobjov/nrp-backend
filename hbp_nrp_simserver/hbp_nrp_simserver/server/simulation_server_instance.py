@@ -56,7 +56,7 @@ class SimulationServerInstance:
     # NOTE SimulationServer child process stopping timeout in secs
     # it should give the SimulationServer to perform the
     # (possibly) lenghty shutdown process before sending to it a SIGTERM
-    MAX_STOP_TIMEOUT: float = 30. # TODO TEST 10.
+    MAX_STOP_TIMEOUT: float = 30.
 
     def __init__(self,
                  lifecycle: simulation_lifecycle.SimulationLifecycle,
