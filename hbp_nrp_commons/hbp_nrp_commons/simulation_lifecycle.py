@@ -31,12 +31,12 @@ import logging
 import time
 from typing import Optional, List
 
+from hbp_nrp_commons.workspace.settings import Settings
 from transitions import MachineError
 from transitions.extensions import LockedMachine as Machine
 import paho.mqtt.client as mqtt
 
 __author__ = 'NRP software team, Georg Hinkel, Ugo Albanese'
-
 
 logger = logging.getLogger(__name__)
 
@@ -44,9 +44,6 @@ logger = logging.getLogger(__name__)
 # transition package logging is quite verbose, add one level to the parent one:
 # i.e. parent_level + 10
 logging.getLogger("transitions").setLevel(logger.getEffectiveLevel() + 10)
-
-# TODO: Think how to define the broker address better
-mqtt_broker_address_default = os.environ.get('MQTT_BROKER_ADDRESS', 'localhost')
 
 class SimulationLifecycle:
     """
@@ -63,12 +60,11 @@ class SimulationLifecycle:
 
     STATES: List[str] = [
         'created',
-        'paused',   # Simulation resources have been initialized and waiting to start 
+        'paused',  # Simulation resources have been initialized and waiting to start
         'started',  # Simulation is advancing
         'completed',  # Simulation has completed, waiting to be stopped
         'stopped',  # Simulation has been stopped, resources have been released.
-        'failed']   # Simulation has failed, resources have been released.
-
+        'failed']  # Simulation has failed, resources have been released.
 
     INITIAL_STATE: str = 'created'
 
@@ -91,7 +87,7 @@ class SimulationLifecycle:
     @staticmethod
     def is_error_state(state: str) -> bool:
         return state in SimulationLifecycle.ERROR_STATES
-    
+
     @staticmethod
     def is_initial_state(state: str) -> bool:
         return state == SimulationLifecycle.INITIAL_STATE
@@ -119,11 +115,11 @@ class SimulationLifecycle:
             logger.debug("Not a final state. Don't shutdown.")
             return
 
-        if source_state != dest_state: # not a self transition
+        if source_state != dest_state:  # not a self transition
             time.sleep(1)
             logger.debug("Final state '%s' reached. Shutdown.", dest_state)
             self.shutdown(state_change)
-    
+
     def __propagate_state_change(self, state_change):
         """
         Propagates the state change to other simulation lifecycle implementations.
@@ -157,7 +153,6 @@ class SimulationLifecycle:
                                                    "target_state": dest_state}),
                                        retain=should_retain)
 
-
     def __synchronized_lifecycle_changed(self, _client, _userdata, message):
         """
         Gets called when the lifecycle of the simulation changed in another MQTT node:
@@ -186,9 +181,9 @@ class SimulationLifecycle:
 
         try:
             # don't recevive message from myself
-            if self.mqtt_client_id == state_change["source_node"]: # receiver same as sender
+            if self.mqtt_client_id == state_change["source_node"]:  # receiver same as sender
                 return
-            
+
             logger.debug("[%s] Received lifecycle synchronization message: %s",
                          self.mqtt_client_id, state_change)
 
@@ -197,7 +192,7 @@ class SimulationLifecycle:
                                "have diverged.")
                 logger.warning("Moving to selected source state now")
                 self.__machine.set_state(source_state)
-            
+
             # pylint: disable=broad-except
             try:
                 self.__machine.events[state_change["event"]].trigger(silent=True)
@@ -212,11 +207,11 @@ class SimulationLifecycle:
 
     def __on_connect(self, client, userdata: dict, _flags, _rc):
         logger.debug("Connected to MQTT broker with id '%s'", self.mqtt_client_id)
-        
+
         if userdata.get("clear_synchronization_topic", False):
             # clear the topic from stale retained msgs
             self._clear_synchronization_topic()
-        
+
         client.subscribe(self.synchronization_topic)
         logger.debug("Subscribed to %s MQTT topic", self.synchronization_topic)
 
@@ -225,14 +220,14 @@ class SimulationLifecycle:
         Clear the synchronization_topic from retained messages
         """
         self.__mqtt_client.publish(self.synchronization_topic, "", retain=True)
-        
 
     def __init__(self,
                  synchronization_topic: str,
                  initial_state: str = INITIAL_STATE,
                  propagated_destinations: Optional[List[str]] = STATES,
                  mqtt_client_id: Optional[str] = None,
-                 mqtt_broker_host: str = mqtt_broker_address_default, mqtt_broker_port: int = 1883,
+                 mqtt_broker_host: str = Settings.mqtt_broker_host,
+                 mqtt_broker_port: int = Settings.mqtt_broker_port,
                  clear_synchronization_topic=False):
         """
         Creates a new synchronization lifecycle for the given topic
@@ -249,10 +244,10 @@ class SimulationLifecycle:
         self.state = initial_state
         self.failed = lambda: None
         propagated_destinations = propagated_destinations \
-                                  if propagated_destinations is not None else SimulationLifecycle.STATES
+            if propagated_destinations is not None else SimulationLifecycle.STATES
         # states for which change events should be propagated to other lifecycles
         self._silent_destinations = frozenset(self.STATES) - frozenset(propagated_destinations)
-        
+
         self.__machine = Machine(model=self,
                                  states=SimulationLifecycle.STATES,
                                  initial=initial_state,
@@ -301,13 +296,14 @@ class SimulationLifecycle:
         self.__mqtt_client.message_callback_add(synchronization_topic,
                                                 self.__synchronized_lifecycle_changed)
 
-        logger.debug("Connecting to the MQTT broker at %s:%s", str(self.mqtt_broker_host), str(self.mqtt_broker_port))
-        self.__mqtt_client.connect(self.mqtt_broker_host, port=self.mqtt_broker_port)
+        logger.debug("Connecting to the MQTT broker at %s:%s", str(self.mqtt_broker_host),
+                     str(self.mqtt_broker_port))
+        self.__mqtt_client.connect(host=self.mqtt_broker_host, port=self.mqtt_broker_port)
         self.__mqtt_client.loop_start()  # start message processing thread
 
     def _add_transition(self, trigger,
                         source, dest,
-                        before:Optional[str] = None,
+                        before: Optional[str] = None,
                         after: Optional[str] = None):
         """
         Registers a new transition in the simulation lifecycle
@@ -334,7 +330,7 @@ class SimulationLifecycle:
 
         if dest in self._silent_destinations:
             before_list += ['set_silent']
-        
+
         self.__machine.add_transition(trigger=trigger,
                                       source=source, dest=dest,
                                       before=before_list, after=after)
@@ -366,7 +362,7 @@ class SimulationLifecycle:
                     "Error trying to perform cleanup operation for command '%s'", command)
                 logger.exception(ex2)
                 raise ex2
-            
+
             raise ex
 
     @staticmethod
@@ -390,7 +386,7 @@ class SimulationLifecycle:
             return
 
         if self.clear_synchronization_topic:
-             # clear retained msg
+            # clear retained msg
             self.__mqtt_client.publish(self.synchronization_topic, "",
                                        retain=True)
 
@@ -398,7 +394,7 @@ class SimulationLifecycle:
         self.__mqtt_client.loop_stop()
         self.__mqtt_client.disconnect()
         self.__mqtt_client = None
-    
+
     # These methods will be overridden in the derived classes, thus we need to exclude them
     # from pylint
     def initialize(self, state_change):

@@ -41,6 +41,19 @@ class _Settings:
 
     __instance = None
 
+    DEFAULT_MQTT_BROKER_HOST = "localhost"
+    DEFAULT_MQTT_BROKER_PORT = 1883
+
+    DEFAULT_STORAGE_HOST = "localhost"
+    DEFAULT_STORAGE_PORT = 9000
+
+    env_vars_name = {'ROOT_DIR': 'HBP', # NRP home directory
+                     'SIMULATION_DIR': 'NRP_SIMULATION_DIR', # NRP simulation directory (in /tmp)
+                     'MQTT_BROKER': "NRP_MQTT_BROKER_ADDRESS",
+                     'STORAGE_ADDRESS': 'STORAGE_ADDRESS',
+                     'STORAGE_PORT':'STORAGE_PORT'}
+
+
     def __new__(cls):
         """
         Overridden new for the singleton implementation
@@ -57,20 +70,34 @@ class _Settings:
         Declare all the config and system variables
         """
 
-        self.nrp_home = os.environ.get('HBP', None)
+        self.nrp_home = os.environ.get(self.env_vars_name['ROOT_DIR'], None)
         if self.nrp_home is None:
-            raise Exception("Please export NRP home directory as 'HBP' environment variable")
+            raise Exception(f"Please export NRP home directory as '{self.env_vars_name['ROOT_DIR']}' environment variable")
 
-        self.sim_dir_symlink = os.environ.get('NRP_SIMULATION_DIR')
+        self.sim_dir_symlink = os.environ.get(self.env_vars_name['SIMULATION_DIR'])
         if self.sim_dir_symlink is None:
             raise Exception(
                 "Simulation directory symlink location is not specified in NRP_SIMULATION_DIR")
 
-        storage_address = os.environ.get('STORAGE_ADDRESS', 'localhost')
-        storage_port = os.environ.get('STORAGE_PORT', '9000')
-        self.storage_uri = 'http://{0}:{1}/storage'.format(storage_address, storage_port)
+        # The address of the MQTT broker, defaults to localhost:1883
+        try:
+            host, port = os.environ.get(self.env_vars_name['MQTT_BROKER']).split(":")
+            self.mqtt_broker_host = host 
+            self.mqtt_broker_port = int(port)
+            # user has specified a valid address
+            self.is_mqtt_broker_default: bool = False
+        except (ValueError, AttributeError):
+             # user has specified an invalid address, use default
+            self.mqtt_broker_host: str = _Settings.DEFAULT_MQTT_BROKER_HOST
+            self.mqtt_broker_port: int = _Settings.DEFAULT_MQTT_BROKER_PORT
+            self.is_mqtt_broker_default: bool = True
 
-        self.MAX_SIMULATION_TIMEOUT = 24 * 60 * 60   # 1 day in seconds
+        # TODO do as for MQTT (i.e. address = host:port), rename to NRP_STORAGE_ADDRESS
+        storage_address = os.environ.get(self.env_vars_name['STORAGE_ADDRESS'], self.DEFAULT_STORAGE_HOST)
+        storage_port = os.environ.get(self.env_vars_name['STORAGE_PORT'], self.DEFAULT_STORAGE_PORT)
+        self.storage_uri = f'http://{storage_address}:{storage_port}/storage'
+
+        self.MAX_SIMULATION_TIMEOUT = 24 * 60 * 60  # 1 day in seconds
 
 
 # Instantiate the singleton

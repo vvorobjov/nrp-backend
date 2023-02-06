@@ -31,6 +31,7 @@ import threading
 from time import time_ns as now_ns
 from typing import List, Optional, Type
 
+from hbp_nrp_commons.workspace.settings import Settings
 import hbp_nrp_simserver.server.experiment_configuration as exp_conf_utils
 
 import hbp_nrp_simserver.server as simserver
@@ -76,13 +77,19 @@ class NrpCoreWrapper:
         self.is_running: bool = False
 
         # datatransfer_engine's needs sim_id to use in topics' naming.
-        # We pass sim_id overriding its "simulationID" parameter in its configuration
+        # We pass "sim_id" overriding its "simulationID" parameter in its configuration
         # But we need to find the position of its configuration in the exp_config.EngineConfigs list
         data_engine_index: int = exp_conf_utils.engine_index(exp_config,
                                                              "datatransfer_grpc_engine")
 
         conf_overrides: List[str] = [""]  # empty string to ease string joining with str.join()
         conf_overrides.append(f"EngineConfigs.{data_engine_index}.simulationID={sim_id}")
+
+        # We override the MQTTBroker address if specified in workspace.Settings via Env Vars
+        if not Settings.is_mqtt_broker_default:
+            mqtt_address_str = f"{Settings.mqtt_broker_host}:{Settings.mqtt_broker_port}"
+            conf_overrides.append(f"EngineConfigs.{data_engine_index}.MQTTBroker={mqtt_address_str}")
+
         conf_overrides_str = ' -o '.join(conf_overrides).strip()
 
         nrp_core_args = [conf_overrides_str]  # NOTE append nrp_core args e.g. "--cloglevel=trace"

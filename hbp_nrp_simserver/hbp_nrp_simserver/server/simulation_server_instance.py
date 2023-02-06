@@ -29,15 +29,12 @@ import os
 import signal
 import subprocess
 import threading
-import ctypes
-import ctypes.util
 from typing import Optional, Tuple, IO, Union
 
-
-
-from hbp_nrp_commons import get_python_interpreter
 import hbp_nrp_commons.simulation_lifecycle as simulation_lifecycle
 import hbp_nrp_simserver.server as sim_server
+
+from hbp_nrp_commons import get_python_interpreter
 
 __author__ = 'NRP software team, Ugo Albanese, Sebastian Krach, Georg Hinkel'
 
@@ -60,7 +57,7 @@ class SimulationServerInstance:
 
     def __init__(self,
                  lifecycle: simulation_lifecycle.SimulationLifecycle,
-                 sim_id: int, # NOTE change here when new sim_id type
+                 sim_id: int,  # NOTE change here when new sim_id type
                  sim_dir: str,
                  main_script_path: str,
                  exp_config_path: str):
@@ -148,7 +145,7 @@ class SimulationServerInstance:
         self.__sim_process_monitoring_thread.start()
 
         logger.debug("Simulation server process started. "
-                    "Simulation ID: '%s'", self.sim_id)
+                     "Simulation ID: '%s'", self.sim_id)
 
     def shutdown(self) -> None:
         """
@@ -177,7 +174,7 @@ class SimulationServerInstance:
         # signals are returned by wait as negative integers, ignore the ones sent by us
         received_alien_signal = (return_code < 0 and
                                  not is_signal_sent_by_us(abs(return_code)))
-        
+
         # terminated with an exit code.
         # positive integers can be ServerProcessExitCodes or some other exit code
         if exited_with_server_error := (return_code > 0):
@@ -204,7 +201,7 @@ class SimulationServerInstance:
             # clean up sim process
             self.__sim_process_logfile.close()
 
-    def _blocking_termination(self, timeout:float = MAX_STOP_TIMEOUT) -> None:
+    def _blocking_termination(self, timeout: float = MAX_STOP_TIMEOUT) -> None:
         """
         Perform termination and block until the simulation server process has finished.
 
@@ -227,15 +224,14 @@ class SimulationServerInstance:
                          "Simulation ID: '%s'", self.sim_id)
             try:
                 self.__sim_process.terminate()
-                self.__sim_process_monitoring_thread.join(timeout) # NOTE Waiting point
+                self.__sim_process_monitoring_thread.join(timeout)  # NOTE Waiting point
 
                 if self.__sim_process_monitoring_thread.is_alive():
                     logger.debug("Killing the simulation process - Sending SIGKILL. "
-                                    "Some child processes could still be running."
-                                    "Simulation ID: '%s'", self.sim_id)
+                                 "Some child processes could still be running."
+                                 "Simulation ID: '%s'", self.sim_id)
                     self.__sim_process.kill()
-                    self.__sim_process_monitoring_thread.join(timeout) # NOTE Waiting point
+                    self.__sim_process_monitoring_thread.join(timeout)  # NOTE Waiting point
             except ProcessLookupError:
                 logger.debug("Simulation process not found while sending signal - Ignore."
-                                "Simulation ID: '%s'", self.sim_id)
-
+                             "Simulation ID: '%s'", self.sim_id)

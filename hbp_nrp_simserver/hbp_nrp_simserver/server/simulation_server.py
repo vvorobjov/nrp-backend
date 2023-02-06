@@ -24,7 +24,7 @@
 # ---LICENSE-END
 """
 This module implements the Simulation server application.
-It is managed by a SimulationServeInstance.
+It is managed by a SimulationServerInstance.
 """
 
 from __future__ import annotations
@@ -43,6 +43,7 @@ import hbp_nrp_commons.timer as timer
 import hbp_nrp_simserver.server as simserver
 import hbp_nrp_simserver.server.experiment_configuration as exp_conf_utils
 import hbp_nrp_simserver.server.simulation_server_lifecycle as simserver_lifecycle
+from hbp_nrp_commons.workspace.settings import Settings
 from hbp_nrp_commons.simulation_lifecycle import SimulationLifecycle
 from hbp_nrp_simserver.server.mqtt_notificator import MQTTNotificator
 from hbp_nrp_simserver.server.nrp_script_runner import NRPScriptRunner
@@ -154,13 +155,17 @@ class SimulationServer:
         self.exp_config = exp_conf_utils.validate(
             exp_conf_utils.parse(self.simulation_settings.exp_config_file))
 
-        # find MQTT broker address in config
-        broker_address, broker_port = exp_conf_utils.mqtt_broker_address_port(
-            self.exp_config)
+        # find MQTT broker address
+        # from workspace.Settings (i.e. env var), otherwise from config
+        if not Settings.is_mqtt_broker_default:
+            broker_host, broker_port = Settings.mqtt_broker_host, Settings.mqtt_broker_port
+        else:
+            broker_host, broker_port = exp_conf_utils.mqtt_broker_host_port(self.exp_config)
+
 
         logger.debug("Setting up simulation Notificator")
         self._notificator = MQTTNotificator(self.simulation_id,
-                                            broker_hostname=broker_address,
+                                            broker_hostname=broker_host,
                                             broker_port=int(broker_port))
 
         try:

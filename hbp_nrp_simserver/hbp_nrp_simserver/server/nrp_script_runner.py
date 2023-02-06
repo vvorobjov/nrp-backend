@@ -27,18 +27,18 @@ This module contains the start script of a state machine process
 import ast
 import contextlib
 import logging
-import sys
 import os
+import sys
 import threading
 import traceback
 from typing import Optional, Callable, List
 
-from hbp_nrp_commons import set_up_logger
-import hbp_nrp_simserver.server.experiment_configuration as exp_conf
 import hbp_nrp_simserver.server as simserver
+import hbp_nrp_simserver.server.experiment_configuration as exp_conf
 import hbp_nrp_simserver.server.nrp_core_wrapper as nrp_core_wrapper
 from hbp_nrp_simserver.server.nrp_core_wrapper import NRPSimulationTimeout, NRPStopExecution
 
+from hbp_nrp_commons import set_up_logger
 
 __author__ = 'NRP software team, Ugo Albanese'
 
@@ -59,6 +59,7 @@ class NRPScriptRunner:
     (an instance of NRPCoreWrapper) and call its run_loop method
     until a NRPSimulationTimeout is raised.
     """
+
     def __init__(self,
                  sim_settings: simserver.SimulationSettings,
                  exp_config: exp_conf.type_class,
@@ -88,11 +89,10 @@ class NRPScriptRunner:
         self.__exec_started_event: threading.Event = threading.Event()
         # started event: signals __exec_thread to stop
         # set once in stop(). Never cleared
-        self.__exec_stopped_event: threading.Event = threading.Event() # one-shot. Never cleared
+        self.__exec_stopped_event: threading.Event = threading.Event()  # one-shot. Never cleared
 
         # set up logger for the script to use
         self.__script_logger: logging.Logger = self._set_up_script_logger()
-
 
     def _set_up_script_logger(self) -> logging.Logger:
         """
@@ -108,11 +108,11 @@ class NRPScriptRunner:
         script_file_name, _ext = os.path.splitext(os.path.basename(self.script_path))
 
         script_logger = set_up_logger(name=f"{__name__}.{script_file_name}",
-                            logfile_name=f"{script_file_name}_{self.sim_id}.log",
-                            log_format=None, # TODO script logger format?
-                            level=logging.DEBUG)
+                                      logfile_name=f"{script_file_name}_{self.sim_id}.log",
+                                      log_format=None,  # TODO script logger format?
+                                      level=logging.DEBUG)
 
-         # don't propagate to parent loggers (i.e. write only in the log file)
+        # don't propagate to parent loggers (i.e. write only in the log file)
         script_logger.propagate = False
 
         return script_logger
@@ -164,7 +164,7 @@ class NRPScriptRunner:
                                                 self.__exec_started_event,
                                                 self.__exec_stopped_event)
             self.__nrp_core_wrapped._initialize()
-        
+
         except Exception as e:  # pylint:disable=broad-except
             self._publish_error(msg=f"Error initializing nrp_core client. Check logs. "
                                     f"Simulation ID {self.sim_id}: {str(e)}",
@@ -208,13 +208,13 @@ class NRPScriptRunner:
         """
         # pylint: disable=broad-except
         logger.info(f"[ID {self.sim_id}] Executing main script")
-        
+
         # NOTE Add here any name that should be available to the running script
         script_global_env = {"NRPSimulationTimeout": NRPSimulationTimeout,
                              "nrp": self.__nrp_core_wrapped,
                              "file_logger": self.__script_logger,
                              "logging": logging
-                            }
+                             }
 
         try:
             with self._hide_modules(NRP_CORE_MODULES_NAMES):
@@ -227,8 +227,8 @@ class NRPScriptRunner:
                 lineno = traceback.extract_tb(tb)[-1][1]
 
                 self._publish_error(msg=f"{error_class} in main script (Line {lineno}): {str(e)}",
-                    error_type="Compile",
-                    line_number=lineno)
+                                    error_type="Compile",
+                                    line_number=lineno)
             finally:
                 del tb  # as recommended in the docs
         except NRPStopExecution:
@@ -242,9 +242,8 @@ class NRPScriptRunner:
             logger.exception("%s. Simulation ID '%s'", str(e), self.sim_id)
             self._publish_error(msg=str(e), error_type="Runtime")
         finally:
-            # main script exectution completed
+            # main script execution completed
             completed_callback()
-
 
     def start(self, completed_callback: Callable[[], None] = lambda: None) -> None:
         """
@@ -272,12 +271,12 @@ class NRPScriptRunner:
         """
         logger.info("Stopping main script. Simulation ID '%s'", self.sim_id)
         if self.__exec_thread is not None:
-            
+
             self.__exec_stopped_event.set()
-            
+
             logger.debug("Waiting main script thread. Simulation ID '%s'", self.sim_id)
-            
-            self.__exec_thread.join(MAX_STOP_TIMEOUT) # NOTE Waiting point
+
+            self.__exec_thread.join(MAX_STOP_TIMEOUT)  # NOTE Waiting point
             if self.__exec_thread.is_alive():
                 logger.warning("Couldn't stop main script thread."
                                " Simulation ID '%s'", self.sim_id)
@@ -286,9 +285,9 @@ class NRPScriptRunner:
         logger.info("Shutdown main script. Simulation ID '%s'", self.sim_id)
         try:
             if self.__nrp_core_wrapped is None:
-               logger.debug("Trying to shut NrpCore down twice. Ignoring. "
-                            "Simulation ID '%s'", self.sim_id)
-               return
+                logger.debug("Trying to shut NrpCore down twice. Ignoring. "
+                             "Simulation ID '%s'", self.sim_id)
+                return
 
             self.__nrp_core_wrapped._shutdown()
             self.__nrp_core_wrapped = None
@@ -315,6 +314,6 @@ class NRPScriptRunner:
         try:
             yield  # nothing to yield
         except Exception:
-            raise # propagate exceptions
+            raise  # propagate exceptions
         finally:
             sys.modules.update(saved_modules)

@@ -74,7 +74,7 @@ def engine_index(exp_config: type_class, engine_type: str) -> int:
             for ec in getattr(exp_config, "EngineConfigs")].index(engine_type)
 
 
-def mqtt_broker_address_port(exp_config: type_class) -> List[str]:
+def mqtt_broker_host_port(exp_config: type_class) -> List[str]:
     data_engine_index = engine_index(exp_config,
                                      "datatransfer_grpc_engine")
     data_engine_conf = getattr(exp_config, "EngineConfigs")[data_engine_index]
