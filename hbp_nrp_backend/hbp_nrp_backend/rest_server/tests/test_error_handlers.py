@@ -44,12 +44,10 @@ class TestErrorHandlers(RestTest):
         self.patcher_backend_lifecycle = mock.patch(
             "hbp_nrp_backend.simulation_control.simulation.BackendSimulationLifecycle")
         self.mock_backend_lifecycle = self.patcher_backend_lifecycle.start()
+        self.addCleanup(self.patcher_backend_lifecycle.stop)
 
         simulations.append(Simulation(
             0, 'experiment1', 'default-owner', state='paused'))
-
-    def tearDown(self) -> None:
-        self.patcher_backend_lifecycle.stop()
 
     def test_general_500_error(self):
         simulations[0]._Simulation__lifecycle = mock.MagicMock()

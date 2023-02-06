@@ -30,13 +30,12 @@ import threading
 from typing import Callable, Optional
 
 import hbp_nrp_commons.simulation_lifecycle as simulation_lifecycle
-
 import hbp_nrp_simserver.server as simserver
-from .simulation_server import SimulationServer
+
 from .nrp_script_runner import NRPScriptRunner
+from .simulation_server import SimulationServer
 
 __author__ = 'NRP software team, Georg Hinkel'
-
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +98,8 @@ class SimulationServerLifecycle(simulation_lifecycle.SimulationLifecycle):
             try:
                 self.__nrp_script_runner.initialize()
             finally:
-                self._clear_synchronization_topic()  # consume the intialization event, clear the topic
+                # consume the initialization event, clear the topic
+                self._clear_synchronization_topic()
 
     def start(self, _state_change):
         """

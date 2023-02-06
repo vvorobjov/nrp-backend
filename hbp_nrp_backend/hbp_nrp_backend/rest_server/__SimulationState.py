@@ -30,7 +30,6 @@ __author__ = 'NRP software team, Georg Hinkel'
 from flask import request
 from flask_restful import Resource, marshal_with, fields
 from hbp_nrp_commons.simulation_lifecycle import SimulationLifecycle
-from transitions import MachineError
 
 from . import ErrorMessages
 from . import docstring_parameter
@@ -90,7 +89,8 @@ class SimulationState(Resource):
                 ErrorMessages.SIMULATION_NOT_FOUND_404, error_code=404)
 
         if not UserAuthentication.can_view(simulation):
-            raise NRPServicesWrongUserException(message=ErrorMessages.SIMULATION_PERMISSION_401_VIEW)
+            raise NRPServicesWrongUserException(
+                message=ErrorMessages.SIMULATION_PERMISSION_401_VIEW)
 
         # NOTE "state" attribute of "simulation" gets returned thanks to marshal_with
         return simulation, 200
@@ -138,7 +138,7 @@ class SimulationState(Resource):
             raise NRPServicesClientErrorException(f'{" ".join(missing_fields)} not given.')
 
         requested_state = body['state']
-        
+
         # validate state request
         if not SimulationLifecycle.is_state(requested_state):
             raise NRPServicesStateException(f"Invalid state requested: ({requested_state})")

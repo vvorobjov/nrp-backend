@@ -35,10 +35,10 @@ import os
 import tempfile
 from typing import Optional
 
+import hbp_nrp_backend.simulation_control.simulation as sim
 import hbp_nrp_backend.storage_client_api.storage_client as storage_client
 import hbp_nrp_backend.user_authentication as user_auth
 import hbp_nrp_simserver.server as simserver
-
 from hbp_nrp_commons.simulation_lifecycle import SimulationLifecycle
 from hbp_nrp_commons.workspace.sim_util import SimUtil
 from hbp_nrp_simserver.server.simulation_server_instance import SimulationServerInstance
@@ -46,10 +46,7 @@ from hbp_nrp_simserver.server.simulation_server_instance import SimulationServer
 from hbp_nrp_backend import NRPServicesGeneralException
 from hbp_nrp_commons import zip_util
 
-import hbp_nrp_backend.simulation_control.simulation as sim # NOTE don't move, circular import
-
-
-__author__ = 'NRP software team, Georg Hinkel, Manos Angelidis, Ugo Albanese'
+__author__ = 'NRP software team, Georg Hinkel, Ugo Albanese'
 
 logger = logging.getLogger(__name__)
 
@@ -60,10 +57,12 @@ class BackendSimulationLifecycle(SimulationLifecycle):
     """
 
     # Backend should only state change towards these states.
-    # In fact, Backend can't can't make a simulation fail.
+    # In fact, Backend can't make a simulation fail.
     propagated_destinations = SimulationLifecycle.RUNNING_STATES  # anything but final states
 
-    def __init__(self, simulation: sim.Simulation, initial_state: str = 'created'):
+    def __init__(self,
+                 simulation: sim.Simulation,
+                 initial_state: str = SimulationLifecycle.INITIAL_STATE):
         """
         Creates a new backend simulation lifecycle
 
@@ -71,11 +70,11 @@ class BackendSimulationLifecycle(SimulationLifecycle):
         """
         super(BackendSimulationLifecycle, self).__init__(
             simserver.TOPIC_LIFECYCLE(simulation.sim_id),
-            initial_state = initial_state,
+            initial_state=initial_state,
             mqtt_client_id="nrp_backend",
             propagated_destinations=BackendSimulationLifecycle.propagated_destinations,
             clear_synchronization_topic=True)
-        
+
         self.__simulation: sim.Simulation = simulation
         self._sim_dir: Optional[str] = None  # sim_dir created by initialize method
         self.__experiment_path: Optional[str] = None
@@ -114,7 +113,6 @@ class BackendSimulationLifecycle(SimulationLifecycle):
         """
         return self._sim_dir
 
-
     def initialize(self, _state_change) -> None:
         """
         Initializes the simulation
@@ -129,7 +127,8 @@ class BackendSimulationLifecycle(SimulationLifecycle):
                 raise NRPServicesGeneralException("Only private experiments are supported",
                                                   error_type="User Error", error_code=500)
 
-            # file or directories (i.e. ending with "/") in the experiment folder to ignore in cloning
+            # file or directories (i.e. ending with "/")
+            # in the experiment folder to ignore in cloning
             exclude_list = ["*.log.zip", "logs/", '__pycache__/']
 
             # clone the experiment files in local temporary directory
@@ -178,36 +177,38 @@ class BackendSimulationLifecycle(SimulationLifecycle):
         """
         sim_id_str: str = str(self.simulation.sim_id)
 
+        if self.simulation.simulation_server is None:
+            logger.debug("Simulation Server uninitialized, can't stop it."
+                         "Simulation ID: '%s'", sim_id_str)
+            return
+
         try:
-            if self.simulation.simulation_server is None:
-                logger.debug("Simulation Server uninitialized, can't stop it."
-                             "Simulation ID: '%s'", sim_id_str)
-            else:
+            # NOTE
+            # shutdown can't rely on simulation server's lifecycle for shutting down the simulation;
+            # we must synchronously call simulation_server.shutdown(),
+            # so that we are sure that the files to be persisted in the storage are available
+            # in the simulation directory.
+            self.simulation.simulation_server.shutdown()
+
+            # uploads logs to storage
+            try:
                 # NOTE
-                # shutdown can't rely on simulation server's lifecycle for shutting down the simulation;
-                # we must synchronously call simulation_server.shutdown(),
-                # so that we are sure that the files to be persisted in the storage are available
-                # in the simulation directory.
-                self.simulation.simulation_server.shutdown()
-
-                try:
-                    # NOTE
-                    # save here any simulation-related file we are interested in persisting into
-                    # the user storage 
-                    self._save_log_to_user_storage()
-                except Exception:
-                    logger.debug("Logs upload to storage failed. Simulation ID: '%s'", sim_id_str)
-                    # NOTE TODO what to do of simulation data in the case of a failed storage upload?
-                    raise
-                else:
-                    logger.debug("Uploaded logs to storage. Simulation ID: '%s'", sim_id_str)
-
+                # save here any simulation-related file we are interested in persisting into
+                # the user storage 
+                self._save_log_to_user_storage()
+            except Exception:
+                logger.debug("Logs upload to storage failed. Simulation ID: '%s'", sim_id_str)
+                # NOTE TODO what to do of simulation data in the case of a failed storage upload?
+                raise
+            else:
+                logger.debug("Uploaded logs to storage. Simulation ID: '%s'", sim_id_str)
         finally:
-            # Clean up simulation directory in any case
-            SimUtil.delete_simulation_dir(self.sim_dir)
-            logger.debug("Deleted simulation dir '%s'. Simulation ID: '%s'", str(self.sim_dir), str(sim_id_str))
-            
-            logger.info("Stopping completed. Simulation ID: '%s'", str(sim_id_str))
+            # Clean up simulation directory
+            SimUtil.delete_simulation_dir(self._sim_dir)
+            logger.debug("Deleted simulation dir '%s'. Simulation ID: '%s'", str(self._sim_dir),
+                         sim_id_str)
+
+        logger.info("Stopping completed. Simulation ID: '%s'", sim_id_str)
 
     def pause(self, _state_change):
         """
@@ -223,7 +224,7 @@ class BackendSimulationLifecycle(SimulationLifecycle):
         """
         Fails the simulation
 
-        :param _state_change: The state change which resulted in failing the simulation
+        :param state_change: The state change which resulted in failing the simulation
         """
         try:
             # delegating the cleanup to stop, no state transition is involved
@@ -237,8 +238,8 @@ class BackendSimulationLifecycle(SimulationLifecycle):
 
         :param _state_change: The state change that led to resetting the simulation
         """
-        logger.info("Simulation reset NOT IMPLEMENTED. Simulation ID: '%s'", str(self.simulation.sim_id))
-
+        logger.info("Simulation reset NOT IMPLEMENTED. Simulation ID: '%s'",
+                    str(self.simulation.sim_id))
 
     def _save_log_to_user_storage(self):
         """
@@ -248,9 +249,10 @@ class BackendSimulationLifecycle(SimulationLifecycle):
         sim_id_str: str = str(self.simulation.sim_id)
 
         logs_globs = ("*.log", ".*.log")
-        logs_file_lists = [glob.glob(os.path.join(self._sim_dir, gl)) for gl in logs_globs]
+        logs_file_lists = [glob.glob(os.path.join(self._sim_dir, gl)) for gl in
+                           logs_globs]  # list of lists
 
-        if not any(logs_file_lists): # empty logs_file_lists
+        if not any(logs_file_lists):  # empty logs_file_lists
             logger.debug("No logs to save on storage. Simulation ID: '%s'",
                          sim_id_str)
             return
@@ -261,7 +263,7 @@ class BackendSimulationLifecycle(SimulationLifecycle):
 
         zip_util.create_from_filelist(itertools.chain(*logs_file_lists),
                                       temp_dest,
-                                      preserve_path=False) # flat file hierarchy
+                                      preserve_path=False)  # flat file hierarchy
 
         # upload zip to user storage
         try:
