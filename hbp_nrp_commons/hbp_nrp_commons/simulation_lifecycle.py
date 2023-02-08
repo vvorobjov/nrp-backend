@@ -146,11 +146,11 @@ class SimulationLifecycle:
             # allowing it to transition correctly
             should_retain = self.is_initial_state(source_state)
 
-            self.__mqtt_client.publish(self.synchronization_topic,
-                                       json.dumps({"source_node": self.mqtt_client_id,
-                                                   "source_state": source_state,
-                                                   "event": state_change.event.name,
-                                                   "target_state": dest_state}),
+            self.__mqtt_client.publish(topic=self.synchronization_topic,
+                                       payload=json.dumps({"source_node": self.mqtt_client_id,
+                                                           "source_state": source_state,
+                                                           "event": state_change.event.name,
+                                                           "target_state": dest_state}),
                                        retain=should_retain)
 
     def __synchronized_lifecycle_changed(self, _client, _userdata, message):
@@ -205,21 +205,23 @@ class SimulationLifecycle:
             logger.exception(
                 "Error failing the simulation (this should never happen): %s", str(e2))
 
-    def __on_connect(self, client, userdata: dict, _flags, _rc):
+    def __on_connect(self, client, _userdata: dict, _flags, _rc):
         logger.debug("Connected to MQTT broker with id '%s'", self.mqtt_client_id)
 
-        if userdata.get("clear_synchronization_topic", False):
-            # clear the topic from stale retained msgs
-            self._clear_synchronization_topic()
+        # clear the topic from stale retained msgs if required
+        self._clear_synchronization_topic()
 
         client.subscribe(self.synchronization_topic)
         logger.debug("Subscribed to %s MQTT topic", self.synchronization_topic)
 
     def _clear_synchronization_topic(self):
         """
-        Clear the synchronization_topic from retained messages
+        Clear the synchronization_topic from retained messages if clear_synchronization_topic is True
         """
-        self.__mqtt_client.publish(self.synchronization_topic, "", retain=True)
+        if self.clear_synchronization_topic:
+            self.__mqtt_client.publish(topic=self.synchronization_topic,
+                                       payload="",
+                                       retain=True)
 
     def __init__(self,
                  synchronization_topic: str,
@@ -237,17 +239,26 @@ class SimulationLifecycle:
         :param propagated_destinations: States for which change events should be propagated to other lifecycles
         :param mqtt_client_id: the MQTT Client ID of this lifecycle
         :param mqtt_broker_host: the host where to find the MQTT broker
-        :param mqtt_broker_port: the port, on mqtt_broker_host, at which the MQTT broker is available 
+        :param mqtt_broker_port: the port, on mqtt_broker_host, at which the MQTT broker is available
+        :param clear_synchronization_topic: Whether to clean on connect the synchronization topic of retained messages
+
         """
-        # Transitions adds some members based on the STATES and transitions
-        # We assign them stupid values here to avoid pylint warnings
-        self.state = initial_state
-        self.failed = lambda: None
+
         propagated_destinations = propagated_destinations \
             if propagated_destinations is not None else SimulationLifecycle.STATES
-        # states for which change events should be propagated to other lifecycles
+        
+        # states for which change events should NOT be propagated to other lifecycles
         self._silent_destinations = frozenset(self.STATES) - frozenset(propagated_destinations)
 
+        self.synchronization_topic = synchronization_topic
+        self.clear_synchronization_topic = clear_synchronization_topic
+
+        # Transitions adds some members based on the STATES and transitions
+        # We assign them dummy values here to avoid pylint warnings
+        self.state = initial_state
+        self.failed = lambda: None
+
+        # create StateMachine and setup transitions
         self.__machine = Machine(model=self,
                                  states=SimulationLifecycle.STATES,
                                  initial=initial_state,
@@ -276,24 +287,18 @@ class SimulationLifecycle:
                              before='stop')
         # TODO reset support
 
-        self.synchronization_topic = synchronization_topic
-        self.clear_synchronization_topic = clear_synchronization_topic
-
+        # mqtt
         self.mqtt_client_id = mqtt_client_id
         self.mqtt_broker_host = mqtt_broker_host
         self.mqtt_broker_port = mqtt_broker_port
 
-        # data passed to mqtt client callbacks
-        mqtt_userdata = {"clear_synchronization_topic": clear_synchronization_topic}
-
         # NOTE MQTTv5 requires clean_start=True parameter to connect
-        # instead of clean_session=True here  
-        self.__mqtt_client = mqtt.Client(self.mqtt_client_id,
-                                         clean_session=True,
-                                         userdata=mqtt_userdata)
+        # instead of clean_session=True here
+        self.__mqtt_client: Optional[mqtt.Client] = mqtt.Client(self.mqtt_client_id,
+                                                         clean_session=True)
 
         self.__mqtt_client.on_connect = self.__on_connect
-        self.__mqtt_client.message_callback_add(synchronization_topic,
+        self.__mqtt_client.message_callback_add(self.synchronization_topic,
                                                 self.__synchronized_lifecycle_changed)
 
         logger.debug("Connecting to the MQTT broker at %s:%s", str(self.mqtt_broker_host),
@@ -385,10 +390,8 @@ class SimulationLifecycle:
             logger.debug("Double shutdown of %s lifecycle", self.mqtt_client_id)
             return
 
-        if self.clear_synchronization_topic:
-            # clear retained msg
-            self.__mqtt_client.publish(self.synchronization_topic, "",
-                                       retain=True)
+        # clear retained msg if required
+        self._clear_synchronization_topic()
 
         self.__mqtt_client.unsubscribe(self.synchronization_topic)
         self.__mqtt_client.loop_stop()

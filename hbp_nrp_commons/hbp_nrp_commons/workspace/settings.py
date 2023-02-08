@@ -70,12 +70,14 @@ class _Settings:
         Declare all the config and system variables
         """
 
-        self.nrp_home = os.environ.get(self.env_vars_name['ROOT_DIR'], None)
-        if self.nrp_home is None:
+        try:
+            self.nrp_home = os.environ[self.env_vars_name['ROOT_DIR']]
+        except KeyError:
             raise Exception(f"Please export NRP home directory as '{self.env_vars_name['ROOT_DIR']}' environment variable")
 
-        self.sim_dir_symlink = os.environ.get(self.env_vars_name['SIMULATION_DIR'])
-        if self.sim_dir_symlink is None:
+        try:
+            self.sim_dir_symlink = os.environ[self.env_vars_name['SIMULATION_DIR']]
+        except KeyError:
             raise Exception(
                 "Simulation directory symlink location is not specified in NRP_SIMULATION_DIR")
 

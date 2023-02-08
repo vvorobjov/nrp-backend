@@ -4,7 +4,7 @@
 
 #modules that have tests
 #TEST_MODULES=hbp_nrp_commons/hbp_nrp_commons/ hbp_nrp_backend/hbp_nrp_backend/ hbp_nrp_simserver/hbp_nrp_simserver/
-TEST_MODULES=hbp_nrp_backend/hbp_nrp_backend/
+TEST_MODULES=hbp_nrp_backend/hbp_nrp_backend/ hbp_nrp_commons/hbp_nrp_commons/
 #modules that are installable (ie: ones w/ setup.py)
 INSTALL_MODULES=hbp_nrp_commons hbp_nrp_backend hbp_nrp_simserver
 
