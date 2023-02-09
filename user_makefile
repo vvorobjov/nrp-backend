@@ -32,6 +32,9 @@ PIP=$(shell readlink -f $(PLATFORM_VENV)/bin/pip)
 PYTHON=$(shell readlink -f $(PLATFORM_VENV)/bin/python3)
 CACHE_DIR?=cache
 
+PYCODESTYLERC?=$(PYTHON_UTILS_DIR)/pycodestylerc
+PYLINTRC?=$(PYTHON_UTILS_DIR)/pylintrc
+
 SHELL=/bin/bash
 
 # A literal space, yes, I love Makefiles, why do you ask?
@@ -67,7 +70,7 @@ WARN={ res=$$?; [ -n "$$TERM" ] && tput setaf 1; echo "$(1)"; [ -n "$$TERM" ] &&
 
 #run a command with the utils.sh in the environment
 # note the trailing space
-RUN_UTILS=/bin/bash --rcfile $(UTILS) -i -c
+RUN_UTILS=/bin/bash --rcfile $(PYTHON_UTILS_DIR)/python_utils.sh -i -c
 
 #helpful for debug
 print-%:
