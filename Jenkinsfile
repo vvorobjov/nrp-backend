@@ -22,8 +22,7 @@ def IMG_TAG = checkImageTag("${TOPIC_BRANCH}", "${DEFAULT_BRANCH}")
 
 pipeline {
     environment {
-        USER_SCRIPTS_DIR = "user-scripts"
-        ADMIN_SCRIPTS_DIR = "admin-scripts"
+        USER_SCRIPTS_DIR = "nrp-user-scripts"
         CLE_DIR = "CLE"
         BRAIN_SIMULATION_DIR = "BrainSimulation"
         NRPBACKEND_DIR = "nrp-backend"
@@ -79,8 +78,7 @@ pipeline {
                 //      3 - name of topic branch
                 //      4 - default branch if topic unavailable
                 //      5 - username for chown
-                cloneRepoTopic(env.ADMIN_SCRIPTS_DIR, 'git@bitbucket.org:hbpneurorobotics/admin-scripts.git', env.TOPIC_BRANCH, 'master', '${USER}') 
-                cloneRepoTopic(env.USER_SCRIPTS_DIR, 'git@bitbucket.org:hbpneurorobotics/user-scripts.git', env.TOPIC_BRANCH, env.DEFAULT_BRANCH, '${USER}')
+                cloneRepoTopic(env.USER_SCRIPTS_DIR, 'git@bitbucket.org:hbpneurorobotics/nrp-user-scripts.git', env.TOPIC_BRANCH, env.DEFAULT_BRANCH, '${USER}')
 
             }
         }
@@ -90,8 +88,7 @@ pipeline {
                 bitbucketStatusNotify(buildState: 'INPROGRESS', buildName: 'Build and test ' + env.GIT_CHECKOUT_DIR)
                 dir(env.GIT_CHECKOUT_DIR){
                     // this is a workaround to pass all env vars into script run by the other user (now we are root)
-                    sh 'env > .ci/env'
-                    sh 'sudo -H -u bbpnrsoa bash .ci/build.bash'
+                    sh 'bash .ci/build.bash'
 
                     // deliver artifacts
                     makeReports(false, env.CODE_COVERAGE_LINE)

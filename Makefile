@@ -28,18 +28,4 @@ verify-hbp_nrp_commons:
 
 ##### DO NOT MODIFY BELOW #####################
 
-ifeq ($(NRP_INSTALL_MODE),user)
-        include user_makefile
-else
-        CI_REPO?=git@bitbucket.org:hbpneurorobotics/admin-scripts.git
-        CI_DIR?=$(HBP)/admin-scripts/ContinuousIntegration
-        THIS_DIR:=$(PWD)
-
-        FETCH_CI := $(shell \
-                if [ ! -d $(CI_DIR) ]; then \
-                        cd $(HBP) && git clone $(CI_REPO) > /dev/null && cd $(THIS_DIR);\
-                fi;\
-                echo $(CI_DIR) )
-
-        include $(FETCH_CI)/python/common_makefile
-endif
+include user_makefile

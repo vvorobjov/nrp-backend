@@ -4,6 +4,10 @@
 #OPTIONAL_FEATURES:='[option]'
 OPTIONAL_FEATURES?=
 
+# get makefile path
+ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+PYTHON_UTILS_DIR=$(ROOT_DIR)/.ci
+
 #see if we're in a virtualenv, and use that, otherwise use the default
 ifdef VIRTUAL_ENV
 	PLATFORM_VENV=$(VIRTUAL_ENV)
@@ -18,7 +22,8 @@ TIMEOUT?=530
 
 PYTHON_PIP_VERSION?=pip>=19
 SETUPTOOLS_VERSION?=setuptools>=40
-DOC_REQS?=sphinx==1.1.3 sphinxcontrib-napoleon==0.2.7
+CI_REQS?=$(PYTHON_UTILS_DIR)/requirements_ci_infra.txt
+DOC_REQS?=$(PYTHON_UTILS_DIR)/requirements_docs.txt
 
 python_version_full := $(wordlist 2,4,$(subst ., ,$(shell python3 --version 2>&1)))
 python_version_major := $(word 1,${python_version_full})
@@ -89,41 +94,118 @@ clean:
 .PHONY: devinstall clean download-req
 
 ###########################################################
-######################### SCHEMAS #########################
+######################### Testing #########################
 ###########################################################
 
-#$(info $$SCHEMA_GENERATION is [${SCHEMA_GENERATION}])
+REQUIREMENTS_TEST := $(foreach req, $(INSTALL_MODULES), $(wildcard $(req)/requirements_extension_tests.txt))
 
-ifdef SCHEMA_GENERATION
+TEST_REPORTS_DIR:=test-reports
+test-clean:
+	find . -name '.coverage*' ! -name '.coveragerc' -delete
+	-rm -rf $(TEST_REPORTS_DIR)
 
-schemas-build: virtualenv 
-	for f in $(SCHEMA_GENERATION); do \
-		IFS=':' read -r -a schema <<< "$$f"; \
-		. $(PLATFORM_VENV)/bin/activate;\
-		pyxbgen -u $(HBP)/"$${schema[0]}"/"$${schema[1]}" -m "$${schema[2]}" 2>&1 | grep -v "^WARNING" || { echo ERROR;exit 1; }; \
-	done
+test-reports-dir:
+	mkdir -p $(TEST_REPORTS_DIR)
 
-schemas-install: schemas-build $(SCHEMA_TARGET_LOCATION)/__init__.py
-	for f in $(SCHEMA_GENERATION); do \
-		IFS=':' read -r -a schema <<< "$$f"; \
-		mv "$${schema[2]}".py $(SCHEMA_TARGET_LOCATION)/ ;\
-	done
+#NOTE, we depend on the %.req_make suffix rule in the VirtualEnv section
+test_dep: devinstall doc_dep ci_dep $(patsubst %.txt, %.req_make, $(REQUIREMENTS_TEST))
 
-schemas-clean:
-	for f in $(SCHEMA_GENERATION); do \
-		IFS=':' read -r -a schema <<< "$$f"; \
-		rm -rf $(SCHEMA_TARGET_LOCATION)/"$${schema[2]}".py; \
-	done
+TEST_TARGETS:=$(addprefix test_, $(TEST_MODULES))
+$(TEST_TARGETS): test_%: test_dep
+	@-rm .coverage 2> /dev/null
+	$(PLATFORM_VENV)/bin/nosetests $* -e functional_tests $(NOSEOPS) --exe --with-coverage --cover-inclusive --cover-package=$(COVER_PACKAGES) --with-xunit --xunit-file=$(TEST_REPORTS_DIR)/nosetests_$(subst /,_,$(*:/=)).xml || echo "Nosetest failed"
+	mv .coverage .coverage.$(subst /,_,$(*:=/))
 
-$(SCHEMA_TARGET_LOCATION)/__init__.py: 
-	[ -z $$SCHEMA_TARGET_LOCATION ] || touch $@
+OMIT:=$(subst $(SPACE),$(COMMA),$(PLATFORM_VENV)/* ./*/tests/* $(addsuffix /*,$(subst |,$(SPACE),$(IGNORE_LINT))))
+#strip any trailing commas
+OMIT:=$(patsubst %$(COMMA),%,$(OMIT))
+test: test-reports-dir devinstall $(TEST_TARGETS)
+	$(PLATFORM_VENV)/bin/coverage combine
+	$(PLATFORM_VENV)/bin/coverage report -i --omit '$(OMIT)' --include "$$(pwd)/*"
+	$(PLATFORM_VENV)/bin/coverage xml -i -o coverage.xml --omit '$(OMIT)' --include "$$(pwd)/*"
 
-devinstall-schemas: devinstall schemas-install
+FUNCTIONAL_TEST_DIRS:=$(shell find . -path "./*/functional_tests" -type d -print | sed 's/\.\///')
+FUNCTIONAL_TEST_TARGETS:=$(addprefix functional_test_, $(dir $(FUNCTIONAL_TEST_DIRS)))
 
-.PHONY: devinstall-schemas schemas-install schemas-build schemas-get schemas-dep
+$(FUNCTIONAL_TEST_TARGETS): functional_test_%: test-reports-dir test_dep
+	$(PLATFORM_VENV)/bin/nosetests $*/functional_tests $(NOSEOPS) --exe --with-xunit --xunit-file=test-reports/nosetests_functional_$(*F).xml
 
-#...ifdef SCHEMA_GENERATION
-endif  
+functional_test: test-reports-dir test_dep
+	[ -d functional_tests ] && $(PLATFORM_VENV)/bin/nosetests functional_tests $(NOSEOPS) --exe --with-xunit --xunit-file=$(TEST_REPORTS_DIR)/nosetests_functional.xml || true
+
+functional_test_all: functional_test $(FUNCTIONAL_TEST_TARGETS)
+
+TEST_TARGETS_NOCOVER:=$(addprefix test_no_cover_, $(TEST_MODULES))
+$(TEST_TARGETS_NOCOVER): test_no_cover_%: test_dep
+	$(PLATFORM_VENV)/bin/nosetests $* -e functional_tests $(NOSEOPS) --exe --process-timeout=$(TIMEOUT) --processes=1 --with-xunit --xunit-file=$(TEST_REPORTS_DIR)/nosetests_$(subst /,_,$(*:/=)).xml
+
+test-nocover: test-reports-dir test_dep $(TEST_TARGETS_NOCOVER)
+
+
+test-requirements-clean:
+	-rm $(patsubst %.txt, %.req_make, $(REQUIREMENTS_TEST))
+
+.PHONY: test test_dep functional_test test-requirements-clean test-reports-dir test-nocover $(FUNCTIONAL_TEST_TARGETS)
+
+
+###########################################################
+######################### PyPi ############################
+###########################################################
+
+DISTS=$(addprefix sdist_, $(INSTALL_MODULES))
+
+pypi-sdist: $(DISTS)
+
+$(DISTS): sdist_%: virtualenv devinstall
+	@[ -d $* ] || $(call WARN,Missing INSTALL_MODULES directory: $*)
+	mkdir -p dist
+	cd $* && $(PYTHON) setup.py sdist
+	if [ "$*" != "." ] ; then mv $*/dist/*.tar.gz dist ; fi
+
+pypi-clean:
+	-rm -rf dist
+	for d in $(INSTALL_MODULES); do \
+		rm -rf $$d/$${d%/}.egg-info; \
+		rm -rf $$d/dist; \
+	done; true
+
+.PHONY: pypi-push pypi-sdist pypi-clean
+
+###########################################################
+######################### CI Verify #######################
+###########################################################
+GET_FILES_FUNCTION=get_default_files
+run_pylint-alone:
+	$(RUN_UTILS) '. $(PLATFORM_VENV)/bin/activate; $(GET_FILES_FUNCTION) | filter_python "$(IGNORE_LINT)" | run_pylint -c "$(PYLINTRC)"' \
+		|| $(call WARN,pylint failed: look at the pylint.txt file) || false
+run_pylint: virtualenv devinstall ci_dep run_pylint-alone
+# This target is made with new MAKE instance in order to let it ignore linter errors
+run_pylint-ci: virtualenv devinstall ci_dep 
+	-$(MAKE) run_pylint-alone
+
+run_pycodestyle-alone:
+	$(RUN_UTILS) '. $(PLATFORM_VENV)/bin/activate; $(GET_FILES_FUNCTION) | filter_python "$(IGNORE_LINT)" | run_pycodestyle -c "$(PYCODESTYLERC)"' \
+		|| $(call WARN,pycodestyle failed: look at the pycodestyle.txt file) || false
+run_pycodestyle: virtualenv devinstall ci_dep run_pycodestyle-alone
+# This target is made with new MAKE instance in order to let it ignore linter errors
+run_pycodestyle-ci: virtualenv devinstall ci_dep
+	-$(MAKE) run_pycodestyle-alone
+
+verify: verify_base try_release
+
+verify_changes: GET_FILES_FUNCTION=get_changed_files
+verify_changes: verify_base try_commit
+
+#dashes are easier to type than underscores
+verify-changes: verify_changes
+
+# verify_base fails on linter errors
+# verify_base-ci skips linter-errors
+verify_base-common: devinstall test_dep pypi-sdist
+verify_base: verify_base-common run_pycodestyle run_pylint test
+verify_base-ci: verify_base-common run_pycodestyle-ci run_pylint-ci test
+
+.PHONY: verify verify_changes verify-changes verify_base
 
 ###########################################################
 ######################### VirtualEnv ######################
@@ -160,9 +242,61 @@ $(PLATFORM_VENV)/new-pip.txt: $(PLATFORM_VENV)/bin/activate
 
 # Get version from the git tagging
 set-nrp-version:
-	$(eval SCM_VERSION := $(shell source $(HBP)/user-scripts/nrp_get_scm_version.sh get_scm_version))
+	$(eval SCM_VERSION := $(shell source $(HBP)/nrp-user-scripts/nrp_get_scm_version.sh get_scm_version))
 	for f in $(TEST_MODULES); do \
 		echo "VERSION = '$(SCM_VERSION)'" > $$f/version.py; \
 	done
 
 .PHONY: set-nrp-version
+
+
+###########################################################
+######################### Documentation ###################
+###########################################################
+
+DOCS=$(addprefix doc_, $(DOC_MODULES))
+DOCS_PDF=$(addprefix pdf_doc_, $(DOC_MODULES))
+
+REQUIREMENTS_DOC := $(foreach req, $(DOC_MODULES), $(wildcard $(req)/requirements_documentation.txt))
+$(info $$REQUIREMENTS_DOC is [${REQUIREMENTS_DOC}])
+
+# If requirements_documentation.txt, e.g. REQUIREMENTS_DOC, is present, it overrides the default documentation dependencies
+doc_dep: devinstall $(patsubst %.txt, %.req_make, $(REQUIREMENTS_DOC))
+ifeq ($(strip $(REQUIREMENTS_DOC)),)
+	 $(PIP) install $(PIPPROXY) -r $(DOC_REQS)
+endif
+
+$(DOCS): doc_%: doc_dep
+	@[ -d $* ] || $(call WARN,Missing DOC_MODULES directory: $*)
+	$(eval DOC_VERSION := $(shell git -C $* describe --tags --always --abbrev=0))
+	$(eval DOC_VERSION_FULL := $(shell git -C $* describe --tags --always))
+	echo $(DOC_VERSION)
+	echo $(DOC_VERSION_FULL)
+	. $(PLATFORM_VENV)/bin/activate; cd $* && make SPHINXOPTS="-D version=$(DOC_VERSION) -D release=$(DOC_VERSION_FULL)" html
+$(DOCS_PDF): pdf_doc_%: doc_dep
+	@[ -d $* ] || $(call WARN,Missing DOC_MODULES directory: $*)
+	. $(PLATFORM_VENV)/bin/activate; cd $* && make latexpdf
+
+doc: $(DOCS)
+doc-pdf: $(DOCS_PDF)
+
+doc-clean:
+	for d in $(DOC_MODULES); do \
+		[ -f $$d/Makefile ] && cd $$d && make clean; cd -; \
+	done; true
+
+.PHONY: doc doc-pdf doc-clean
+
+
+###########################################################
+######################### CI Release ######################
+###########################################################
+
+
+ci_dep: ci_dep.txt
+ci_dep.txt: virtualenv
+	$(PIP) install $(PIPPROXY) -r $(CI_REQS)
+	touch $@
+
+ci-clean:
+	-rm ci_dep.txt

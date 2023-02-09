@@ -1,0 +1,10 @@
+#the following is required for the unit testing
+docutils==0.16
+sphinx==3.4.3
+sphinx-rtd-theme==0.5.1
+sphinxcontrib-apidoc==0.3.0
+sphinxcontrib-httpdomain==1.7.0
+recommonmark==0.7.1
+sphinx-copybutton==0.3.1
+sphinxcontrib-images==0.9.3
+Jinja2<3.1
