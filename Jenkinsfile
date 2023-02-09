@@ -23,8 +23,6 @@ def IMG_TAG = checkImageTag("${TOPIC_BRANCH}", "${DEFAULT_BRANCH}")
 pipeline {
     environment {
         USER_SCRIPTS_DIR = "nrp-user-scripts"
-        CLE_DIR = "CLE"
-        BRAIN_SIMULATION_DIR = "BrainSimulation"
         NRPBACKEND_DIR = "nrp-backend"
         // GIT_CHECKOUT_DIR is a dir of the main project (that was pushed)
         GIT_CHECKOUT_DIR = "${env.NRPBACKEND_DIR}"
@@ -33,15 +31,13 @@ pipeline {
         // Jenkins global scope (def ..=..)
         TOPIC_BRANCH = "${TOPIC_BRANCH}"
         DEFAULT_BRANCH = "${DEFAULT_BRANCH}"
-
-        CODE_COVERAGE_LINE = 84.7
     }
     agent {
         docker {
             label 'ci_label'
 
             // NEXUS_REGISTRY_IP and NEXUS_REGISTRY_PORT are Jenkins global variables
-            image "${env.NEXUS_REGISTRY_IP}:${env.NEXUS_REGISTRY_PORT}/nrp:${IMG_TAG}"
+            image "${env.NEXUS_REGISTRY_IP}:${env.NEXUS_REGISTRY_PORT}/nrp-core/nrp-vanilla-ubuntu20:${IMG_TAG}"
             args '--entrypoint="" -u root --privileged'
         }
     }
