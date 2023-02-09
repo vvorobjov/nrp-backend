@@ -36,7 +36,9 @@ from . import TOPIC_STATUS, TOPIC_ERROR
 
 logger = logging.getLogger(__name__)
 
-MQTT_CLIENT_ID = "mqtt_notificator"
+DEFAULT_MQTT_CLIENT_ID = "mqtt_notificator"
+DEFAULT_MQTT_HOST = "localhost"
+DEFAULT_MQTT_PORT = 1883
 
 
 class MQTTNotificator:
@@ -44,9 +46,9 @@ class MQTTNotificator:
     This class encapsulates publishing of state/errors/task status to the frontend/clients.
     """
     def __init__(self,
-                 sim_id: str,
-                 broker_hostname: str = "localhost", broker_port: int = 1883,
-                 client_id: str = MQTT_CLIENT_ID):
+                 sim_id: int,
+                 broker_hostname: str = DEFAULT_MQTT_HOST, broker_port: int = DEFAULT_MQTT_PORT,
+                 client_id: str = DEFAULT_MQTT_CLIENT_ID):
 
         self.sim_id = sim_id
         self.mqtt_broker_hostname = broker_hostname
@@ -56,18 +58,19 @@ class MQTTNotificator:
         self.status_topic = TOPIC_STATUS(self.sim_id)
         self.error_topic = TOPIC_ERROR(self.sim_id)
 
-        # NOTE MQTTv5 requires clean_start=True parameter to connect
-        # instead of clean_session=True here  
-        self.__mqtt_client = mqtt.Client(self.mqtt_client_id, clean_session=True)
-        
-        self.__mqtt_client.on_connect = self.__on_connect
-        self.__mqtt_client.connect(host=self.mqtt_broker_hostname, port=self.mqtt_broker_port)
-        self.__mqtt_client.loop_start()  # start message processing thread
-
         # task specific bookkeeping
         self.__current_task: Optional[str] = None
         self.__current_subtask_count = 0
         self.__current_subtask_index = 0
+
+        # NOTE MQTTv5 reqires clean_start=True parameter to connect
+        # instead of clean_session=True here
+        self.__mqtt_client: Optional[mqtt.Client] = mqtt.Client(self.mqtt_client_id,
+                                                                clean_session=True)
+
+        self.__mqtt_client.on_connect = self.__on_connect
+        self.__mqtt_client.connect(host=self.mqtt_broker_hostname, port=self.mqtt_broker_port)
+        self.__mqtt_client.loop_start()  # start message processing thread
 
         logger.info("MQTT notificator initialized. Simulation ID: '%s'", self.sim_id)
 
@@ -79,7 +82,6 @@ class MQTTNotificator:
         """
         Shutdown all publishers, notification will no longer function after called.
         """
-
         logger.info('Shutting down MQTT notificator')
         self.__mqtt_client.loop_stop()
         self.__mqtt_client.disconnect()
