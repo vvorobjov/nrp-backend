@@ -25,7 +25,7 @@
 This is package contains the Simulation server.
 It runs user-defined python scripts that uses on nrp_core.client.NRPCore.
 
-A simulation server can be managed by an instance of SimulationServerInstance and once, initialized, it sends
+A simulation server can be managed by an instance of SimulationServerInstance and once initialized, it sends
 on MQTT topics, informations about its status (/status) and,
 on error, a message describing such error (/runtime_error).
 

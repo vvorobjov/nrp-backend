@@ -45,23 +45,29 @@ class SimulationServerLifecycle(simulation_lifecycle.SimulationLifecycle):
     Implements the simulation server lifecycle of a simulation
     """
 
-    # Simulation server should propagate to backend only state change towards these states.
+    DEFAULT_MQTT_CLIENT_ID = "nrp_simulation_server"
+
+    # Simulation server should propagate to backend only state changes towards these states.
     # In fact, Simulation server can't initiate any other state changes.
     propagated_destinations = ['completed', 'failed']
 
     def __init__(self,
                  sim_server: SimulationServer,
-                 except_hook: Callable = None):
+                 except_hook: Optional[Callable] = None):
 
-        super().__init__(simserver.TOPIC_LIFECYCLE(sim_server.simulation_id),
-                         propagated_destinations=SimulationServerLifecycle.propagated_destinations,
-                         mqtt_client_id="nrp_simulation_server")
+        if sim_server is None:
+            raise ValueError("Can't create a SimulationServerLifecycle, sim_server is None")
 
         self.__server: SimulationServer = sim_server
         self.__nrp_script_runner: Optional[NRPScriptRunner] = sim_server.nrp_script_runner
 
-        if self.__nrp_script_runner is None:
+        if self.__server is None or self.__nrp_script_runner is None:
             raise ValueError("Can't create a SimulationServerLifecycle, nrp_script_runner is None")
+
+        super().__init__(simserver.TOPIC_LIFECYCLE(sim_server.simulation_id),
+                         propagated_destinations=SimulationServerLifecycle.propagated_destinations,
+                         mqtt_client_id=self.DEFAULT_MQTT_CLIENT_ID)
+
 
         self.__except_hook = except_hook or logger.exception
         self.__done_event: threading.Event = threading.Event()
@@ -82,11 +88,12 @@ class SimulationServerLifecycle(simulation_lifecycle.SimulationLifecycle):
         :param shutdown_event: The event that caused the shutdown
         """
         # gets called by super().__shut_down_on_final_state when reaching one of the final STATES
-        try:
-            self.__nrp_script_runner.shutdown()
-        finally:
-            super().shutdown(shutdown_event)
-            self.__done_event.set()  # let SimulationServer.run terminate
+        if self.__nrp_script_runner is not None:
+            try:
+                self.__nrp_script_runner.shutdown()
+            finally:
+                super().shutdown(shutdown_event)
+                self.__done_event.set()  # let SimulationServer.run terminate
 
     def initialize(self, _state_change):
         """
@@ -94,7 +101,7 @@ class SimulationServerLifecycle(simulation_lifecycle.SimulationLifecycle):
 
         :param _state_change: The state change that caused the simulation to initialize
         """
-        if not self.__nrp_script_runner.is_initialized:
+        if self.__nrp_script_runner is not None and not self.__nrp_script_runner.is_initialized:
             try:
                 self.__nrp_script_runner.initialize()
             finally:

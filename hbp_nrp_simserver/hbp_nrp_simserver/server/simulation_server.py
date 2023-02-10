@@ -82,7 +82,7 @@ class SimulationServer:
         self.exp_config: Optional[exp_conf_utils.type_class] = None
         self._notificator: Optional[MQTTNotificator] = None
         self.__lifecycle: Optional[simserver_lifecycle.SimulationServerLifecycle] = None
-        self.exit_state: str = None
+        self.exit_state: Optional[str] = None
         self.__nrp_script_runner: Optional[NRPScriptRunner] = None
 
         self.__status_update_timer = timer.Timer(SimulationServer.STATUS_UPDATE_INTERVAL,
