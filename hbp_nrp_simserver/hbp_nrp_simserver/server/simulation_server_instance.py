@@ -52,7 +52,7 @@ class SimulationServerInstance:
 
     # NOTE SimulationServer child process stopping timeout in secs
     # it should give the SimulationServer to perform the
-    # (possibly) lenghty shutdown process before sending to it a SIGTERM
+    # (possibly) lenghty shutdown process before sending to it a SIGKILL
     MAX_STOP_TIMEOUT: float = 30.
 
     def __init__(self,
@@ -65,7 +65,7 @@ class SimulationServerInstance:
         Creates a new un-initialized SimulationServerInstance
 
         :param lifecycle: The lifecycle that will control this SimulationServerInstance
-        :param sim_id: the simulation id
+        :param sim_id: the simulation ID
         :param sim_dir: absolute path to the simulation directory
         :param main_script_path: path to the python source of main simulation script.
         :param exp_config_path: path to the experiment configuration file.
@@ -78,7 +78,7 @@ class SimulationServerInstance:
         self.main_script_path = main_script_path
         self.exp_config_path = exp_config_path
 
-        self.__sim_process: subprocess.Popen = None
+        self.__sim_process: Optional[subprocess.Popen] = None
         self.__sim_process_monitoring_thread: Optional[threading.Thread] = None
         self.__sim_process_logfile: Optional[IO] = None
 
@@ -151,6 +151,12 @@ class SimulationServerInstance:
         """
         Shuts down this simulation
         """
+
+        if not self.is_running:
+            logger.debug("Shutting down an already terminated simulation. "
+                         "Simulation ID: '%s'", self.sim_id)
+            return
+
         try:
             self._blocking_termination()
         finally:
@@ -161,9 +167,14 @@ class SimulationServerInstance:
         Monitor simulation process for termination and perform cleanup.
         """
 
+        if not self.is_running:
+            logger.debug("Simulation Server is not running. Nothing to monitor."
+                         "Simulation ID: '%s'", self.sim_id)
+            return
+
         def is_signal_sent_by_us(recv_signal: Union[signal.Signals, int]):
             # signals used by us for process management
-            sent_by_us: Tuple[signal.Signals] = (signal.SIGTERM, signal.SIGKILL)
+            sent_by_us: Tuple[signal.Signals, ...] = (signal.SIGTERM, signal.SIGKILL)
 
             return self.__terminating_process_event.is_set() and (recv_signal in sent_by_us)
 
@@ -190,10 +201,9 @@ class SimulationServerInstance:
                 if not self.__terminating_process_event.is_set():
                     # NOTE 
                     # failed should never be called if the sim process has been stopped by us!
-                    # It will cause a deadlock (unless there is a timeout on the join)
-                    # since the lifecycle will never complete 
-                    # the stopped transition while trying to join this thread
-                    # and thus will be stuck trying to call failed.
+                    # It will cause a deadlock (unless there is a timeout on joining this thread)
+                    # since the lifecycle will never complete the stopped transition
+                    # while trying to join this thread and thus will get stuck trying to call failed.
                     self._lifecycle.failed()
         finally:
             logger.debug("Simulation Server has exited with code: '%s'. Simulation ID: '%s'",
@@ -214,6 +224,7 @@ class SimulationServerInstance:
 
         :param: timeout: Maximum waiting time in seconds
         """
+
         if not self.is_running:
             logger.debug("Shutting down an already terminated simulation. "
                          "Simulation ID: '%s'", self.sim_id)

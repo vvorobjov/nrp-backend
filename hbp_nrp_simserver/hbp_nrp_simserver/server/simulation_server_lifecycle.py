@@ -38,7 +38,7 @@ import hbp_nrp_simserver.server as simserver
 import hbp_nrp_simserver.server.simulation_server as simulation_server
 import hbp_nrp_simserver.server.nrp_script_runner as nrp_script_runner
 
-__author__ = 'NRP software team, Georg Hinkel'
+__author__ = 'NRP software team, Georg Hinkel, Ugo Albanese'
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,8 @@ class SimulationServerLifecycle(simulation_lifecycle.SimulationLifecycle):
             raise ValueError("Can't create a SimulationServerLifecycle, sim_server is None")
 
         self.__server: simulation_server.SimulationServer = sim_server
-        self.__nrp_script_runner: Optional[nrp_script_runner.NRPScriptRunner] = sim_server.nrp_script_runner
+        self.__nrp_script_runner: Optional[
+            nrp_script_runner.NRPScriptRunner] = sim_server.nrp_script_runner
 
         if self.__server is None or self.__nrp_script_runner is None:
             raise ValueError("Can't create a SimulationServerLifecycle, nrp_script_runner is None")
