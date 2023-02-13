@@ -27,34 +27,39 @@ SimulationServerLifecycle unit test
 
 import unittest
 from unittest import mock
+from unittest.mock import patch, MagicMock
 
-import hbp_nrp_simserver.server as simserver
+from hbp_nrp_simserver.server import TOPIC_LIFECYCLE
+
 from hbp_nrp_simserver.server.simulation_server_lifecycle import SimulationServerLifecycle
 
 
+
 class TestSimulationServerLifecycle(unittest.TestCase):
+
     base_path = "hbp_nrp_simserver.server.simulation_server_lifecycle"
 
     def setUp(self):
+
         # Patch hbp_nrp_commons.simulation_lifecycle deps
         # mqtt 
-        patcher_mqtt_client = mock.patch("hbp_nrp_commons.simulation_lifecycle.mqtt.Client")
+        patcher_mqtt_client = patch("hbp_nrp_commons.simulation_lifecycle.mqtt.Client")
         self.mqtt_client_mock = patcher_mqtt_client.start()
         self.publish_mock = self.mqtt_client_mock.return_value.publish
         self.addCleanup(patcher_mqtt_client.stop)
 
         # time
-        patcher_time = mock.patch("hbp_nrp_commons.simulation_lifecycle.time")
+        patcher_time = patch("hbp_nrp_commons.simulation_lifecycle.time")
         self.time_mock = patcher_time.start()
         self.addCleanup(patcher_time.stop)
 
         # Patch simulation_server_lifecycle
         # threading.Event
-        patcher_threading_event = mock.patch(f"{self.base_path}.threading.Event")
+        patcher_threading_event = patch(f"{self.base_path}.threading.Event")
         self.threading_event_mock = patcher_threading_event.start()
         self.addCleanup(patcher_threading_event.stop)
 
-        self.sim_server_mock = mock.MagicMock(simulation_id=42)
+        self.sim_server_mock = MagicMock(simulation_id=42)
         self.ssl = SimulationServerLifecycle(self.sim_server_mock)
 
     def test_init_invalid_args(self):
@@ -64,25 +69,23 @@ class TestSimulationServerLifecycle(unittest.TestCase):
 
         # sim_server.nrp_script_runner is None
         with self.assertRaises(ValueError):
-            SimulationServerLifecycle(mock.MagicMock(nrp_script_runner=None))
+            SimulationServerLifecycle(MagicMock(nrp_script_runner=None))
 
     def test_init(self):
-        self.assertIn(self.ssl.synchronization_topic,
-                      simserver.TOPIC_LIFECYCLE(self.sim_server_mock.simulation_id))
+        self.assertIn(self.ssl.synchronization_topic, TOPIC_LIFECYCLE(self.sim_server_mock.simulation_id))
         self.assertEqual(self.ssl.mqtt_client_id, self.ssl.DEFAULT_MQTT_CLIENT_ID)
-        self.assertEqual(self.ssl.propagated_destinations,
-                         SimulationServerLifecycle.propagated_destinations)
+        self.assertEqual(self.ssl.propagated_destinations, SimulationServerLifecycle.propagated_destinations)
 
     def test_start(self):
         self.ssl.start(mock.sentinel.event)
 
-        self.sim_server_mock.nrp_script_runner.start.assert_called_with(
-            completed_callback=self.ssl.completed)
+        self.sim_server_mock.nrp_script_runner.start.assert_called_with(completed_callback=self.ssl.completed)
 
     def test_start_exception(self):
+
         self.sim_server_mock.nrp_script_runner.start.side_effect = Exception
 
-        except_hook = mock.MagicMock()
+        except_hook = MagicMock()
 
         ssl = SimulationServerLifecycle(self.sim_server_mock, except_hook)
 
@@ -97,7 +100,7 @@ class TestSimulationServerLifecycle(unittest.TestCase):
 
     def test_stop_exception(self):
         self.sim_server_mock.nrp_script_runner.stop.side_effect = Exception
-        except_hook = mock.MagicMock()
+        except_hook = MagicMock()
 
         ssl = SimulationServerLifecycle(self.sim_server_mock, except_hook)
 
@@ -112,7 +115,7 @@ class TestSimulationServerLifecycle(unittest.TestCase):
 
     def test_pause_exception(self):
         self.sim_server_mock.nrp_script_runner.pause.side_effect = Exception
-        except_hook = mock.MagicMock()
+        except_hook = MagicMock()
 
         ssl = SimulationServerLifecycle(self.sim_server_mock, except_hook)
 
@@ -121,14 +124,15 @@ class TestSimulationServerLifecycle(unittest.TestCase):
             except_hook.assert_called_with(cm.exception)
 
     def test_fail(self):
-        with mock.patch.object(self.ssl, "stop") as stop_mock:
+        with patch.object(self.ssl, "stop") as stop_mock:
             some_event = mock.sentinel.event
             self.ssl.fail(some_event)
             stop_mock.assert_called_with(some_event)
             self.sim_server_mock.publish_state_update.assert_called()
 
     def test_fail_exception(self):
-        with mock.patch.object(self.ssl, "stop", side_effect=Exception):
+        with patch.object(self.ssl, "stop", side_effect=Exception):
+
             with self.assertRaises(Exception):
                 self.ssl.fail(mock.sentinel.event)
                 self.sim_server_mock.publish_state_update.assert_called()
@@ -136,7 +140,7 @@ class TestSimulationServerLifecycle(unittest.TestCase):
     def test_initialize(self):
         self.sim_server_mock.nrp_script_runner.is_initialized = False
 
-        with mock.patch.object(self.ssl, "_clear_synchronization_topic") as cst_mock:
+        with patch.object(self.ssl, "_clear_synchronization_topic") as cst_mock:
             self.ssl.initialize(mock.sentinel.event)
             self.sim_server_mock.nrp_script_runner.initialize.assert_called()
             cst_mock.assert_called()
@@ -145,23 +149,24 @@ class TestSimulationServerLifecycle(unittest.TestCase):
         self.sim_server_mock.nrp_script_runner.is_initialized = False
         self.sim_server_mock.nrp_script_runner.initialize.side_effect = Exception
 
-        with mock.patch.object(self.ssl, "_clear_synchronization_topic") as cst_mock:
-            with self.assertRaises(Exception):
+        with patch.object(self.ssl, "_clear_synchronization_topic") as cst_mock:
+            with self.assertRaises(Exception) as cm:
                 self.ssl.initialize(mock.sentinel.event)
                 cst_mock.assert_called()
 
     def test_already_initialized(self):
         self.sim_server_mock.nrp_script_runner.is_initialized = True
 
-        with mock.patch.object(self.ssl, "_clear_synchronization_topic") as cst_mock:
+        with patch.object(self.ssl, "_clear_synchronization_topic") as cst_mock:
             self.ssl.initialize(mock.sentinel.event)
             self.sim_server_mock.nrp_script_runner.initialize.assert_not_called()
             cst_mock.assert_not_called()
 
     def test_shutdown(self):
+
         ssl = SimulationServerLifecycle(self.sim_server_mock)
 
-        with mock.patch(f"{self.base_path}.super") as super_mock:
+        with patch(f"{self.base_path}.super") as super_mock:
             ssl.shutdown(mock.sentinel.event)
 
             # call shutdown
@@ -170,6 +175,7 @@ class TestSimulationServerLifecycle(unittest.TestCase):
             self.threading_event_mock.return_value.set.assert_called()
             # call super().shutdown
             super_mock.return_value.shutdown.assert_called_with(mock.sentinel.event)
+
 
 
 if __name__ == '__main__':

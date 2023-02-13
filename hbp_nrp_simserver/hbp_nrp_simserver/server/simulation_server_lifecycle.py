@@ -24,16 +24,19 @@
 """
 This module contains the simulation server implementation of the simulation lifecycle
 """
+# avoid circular import when using typing annotations PEP563
+# use "import module.submodule as subm" and subm.Class
+from __future__ import annotations
 
 import logging
 import threading
 from typing import Callable, Optional
 
 import hbp_nrp_commons.simulation_lifecycle as simulation_lifecycle
-import hbp_nrp_simserver.server as simserver
 
-from .nrp_script_runner import NRPScriptRunner
-from .simulation_server import SimulationServer
+import hbp_nrp_simserver.server as simserver
+import hbp_nrp_simserver.server.simulation_server as simulation_server
+import hbp_nrp_simserver.server.nrp_script_runner as nrp_script_runner
 
 __author__ = 'NRP software team, Georg Hinkel'
 
@@ -52,14 +55,14 @@ class SimulationServerLifecycle(simulation_lifecycle.SimulationLifecycle):
     propagated_destinations = ['completed', 'failed']
 
     def __init__(self,
-                 sim_server: SimulationServer,
+                 sim_server: simulation_server.SimulationServer,
                  except_hook: Optional[Callable] = None):
 
         if sim_server is None:
             raise ValueError("Can't create a SimulationServerLifecycle, sim_server is None")
 
-        self.__server: SimulationServer = sim_server
-        self.__nrp_script_runner: Optional[NRPScriptRunner] = sim_server.nrp_script_runner
+        self.__server: simulation_server.SimulationServer = sim_server
+        self.__nrp_script_runner: Optional[nrp_script_runner.NRPScriptRunner] = sim_server.nrp_script_runner
 
         if self.__server is None or self.__nrp_script_runner is None:
             raise ValueError("Can't create a SimulationServerLifecycle, nrp_script_runner is None")

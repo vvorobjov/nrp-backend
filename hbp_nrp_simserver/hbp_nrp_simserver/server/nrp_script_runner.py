@@ -24,6 +24,10 @@
 """
 This module contains the start script of a state machine process
 """
+# avoid circular import when using typing annotations PEP563
+# use "import module.submodule as subm" and subm.Class
+from __future__ import annotations
+
 import ast
 import contextlib
 import logging
@@ -54,7 +58,7 @@ class NRPScriptRunner:
     """
     Executes nrp-core experiments "main script" as a python script.
     
-    The script excecution can be started, paused and stopped.
+    The script execution can be started, paused and stopped.
     The script is expected to use the injected 'nrp' handler
     (an instance of NRPCoreWrapper) and call its run_loop method
     until a NRPSimulationTimeout is raised.
@@ -99,10 +103,10 @@ class NRPScriptRunner:
             Sets the script logger up.
 
             Scripts will be able to log to the log file named script_file_name.log
-            Default level is DEBUG, it can be chenged from the script.
+            Default level is DEBUG, it can be changed from the script.
             Log messages won't be propagated to the parent loggers (likely outputting to STOUT).
             
-            :return: The script logger set up as described abose.
+            :return: The script logger set up as described above.
         """
 
         script_file_name, _ext = os.path.splitext(os.path.basename(self.script_path))
