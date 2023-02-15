@@ -30,6 +30,11 @@ type_class = SimpleNamespace
 
 
 def parse(exp_config_file_path: str) -> type_class:
+    """
+    Parse the json file at the specified path
+    :return: An object-like representation of the json file.
+    :raises: ValueError: In case of any parsing error
+    """
     with open(exp_config_file_path) as exp_config_file:
         try:
             # TODO validate json using schema
@@ -39,10 +44,11 @@ def parse(exp_config_file_path: str) -> type_class:
                              f" {exp_config_file_path}: {d_error}")
 
 
+# TODO USE json schema
 def validate(exp_config: type_class) -> type_class:
     """
-    validate and set default for exp_config
-    # TODO USE json schema
+    Validate and set default for exp_config
+    :raises: ValueError: when an invalid filed is found
     """
     # must have SimulationTimeout otherwise set default
     if not hasattr(exp_config, "SimulationTimeout"):

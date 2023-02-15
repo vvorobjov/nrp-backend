@@ -164,7 +164,7 @@ class SimulationServer:
 
 
         logger.debug("Setting up simulation Notificator")
-        self._notificator = MQTTNotificator(self.simulation_id,
+        self._notificator = MQTTNotificator(int(self.simulation_id),
                                             broker_hostname=broker_host,
                                             broker_port=int(broker_port))
 
@@ -191,7 +191,7 @@ class SimulationServer:
         """
         return {'realTime': self.real_time,
                 'simulationTime': self.simulation_time,
-                'state': self.__lifecycle.state,
+                'state': self.__lifecycle.state if self.__lifecycle else "",
                 'simulationTimeLeft': self.simulation_time_remaining
                 }
 
@@ -363,7 +363,7 @@ def main():  # pragma: no cover
     # - after simserver.run has completed
     do_terminate_event = threading.Event()
 
-    def sig_handler(sig, _frame):
+    def termination_sig_handler(sig, _frame) -> None:
         print(f"Received '{sig}'. set do_terminate_event!. Simulation ID '{sim_settings.sim_id}'")
         do_terminate_event.set()
 
@@ -374,7 +374,7 @@ def main():  # pragma: no cover
     termination_signals = [signal.SIGINT, signal.SIGTERM]
 
     for signum in termination_signals:
-        signal.signal(signum, handler=sig_handler)
+        signal.signal(signum, termination_sig_handler)
 
     # unblock termination_signals
     signal.pthread_sigmask(signal.SIG_UNBLOCK, termination_signals)
