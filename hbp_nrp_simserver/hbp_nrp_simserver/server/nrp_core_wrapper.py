@@ -104,6 +104,7 @@ class NrpCoreWrapper:
                      self.NRP_CORE_DEFAULT_ADDRESS_PORT,
                      self.__exp_config_file, nrp_core_args_str)
 
+        # NOTE Change here when NrpCore API changes
         self.__nrp_core_client_instance = nrp_core_class(self.NRP_CORE_DEFAULT_ADDRESS_PORT,
                                                          config_file=self.__exp_config_file,
                                                          args=nrp_core_args_str)
@@ -140,7 +141,7 @@ class NrpCoreWrapper:
         """"
         :return: The wall-clock elapsed execution time in secs as a float
         """
-        time_delta = (now_ns() - self.__start_time) if self.is_running else 0.
+        time_delta: int = (now_ns() - self.__start_time) if self.is_running else 0
         return float((self.__elapsed_time + time_delta) * 1e-9)
 
     def run_loop(self, num_iterations: int = 1, json_data: Optional[str] = None) -> Optional[dict]:
@@ -161,7 +162,7 @@ class NrpCoreWrapper:
 
         logger.debug("run_loop: waiting on paused event. Simulation ID '%s'", self.sim_id)
         # set by NRPScriptRunner.pause() and cleared by NRPScriptRunner.start()
-        self.__paused_event.wait() # NOTE Waiting
+        self.__paused_event.wait() # NOTE Waiting point
         logger.debug("run_loop: wait on paused event over. Simulation ID '%s'", self.sim_id)
 
         # check if we have been asked to stop
@@ -192,8 +193,8 @@ class NrpCoreWrapper:
                                                                                    json_data)
         finally:
             # in case of run_loop raising an exception,
-            # we don't know how many iterations have been completed, don't count them.
-            # the simulation can't go on anyway
+            # we don't know how many iterations have been completed, so don't count them.
+            # the simulation has failed anyway
             self.__elapsed_time += now_ns() - self.__start_time
             self.is_running = False
 

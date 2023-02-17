@@ -58,6 +58,7 @@ class TestSimulationServerInstance(unittest.TestCase):
         self.event_mock = threading_mock.Event
         self.addCleanup(patcher_threading.stop)
 
+        # open
         patcher_open = mock.patch(f"{self.base_path}.open")
         self.open_mock = patcher_open.start()
         self.addCleanup(patcher_open.stop)
@@ -180,6 +181,7 @@ class TestSimulationServerInstance(unittest.TestCase):
         self.ssi._blocking_termination()
 
         self.assertFalse(sim_process.kill.called)
+        self.assertEqual(monitor_thread.join.call_count, 1)
 
     def test_termination_kill(self):
         sim_process = self.popen_mock.return_value

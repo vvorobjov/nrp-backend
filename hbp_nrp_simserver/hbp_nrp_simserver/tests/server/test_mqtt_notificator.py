@@ -22,18 +22,17 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 # ---LICENSE-END
 """
-ROSNotificator unit test
+MQTTNotificator unit test
 """
-from hbp_nrp_simserver.server.mqtt_notificator import MQTTNotificator
-from  hbp_nrp_simserver.server import mqtt_notificator
+import json
 import unittest
 from unittest import mock
 
-import json
-import logging
+from hbp_nrp_simserver.server import mqtt_notificator
+from hbp_nrp_simserver.server.mqtt_notificator import MQTTNotificator
 
 
-class TestROSNotificator(unittest.TestCase):
+class TestMQTTNotificator(unittest.TestCase):
 
     def setUp(self):
         # mqtt
@@ -46,30 +45,14 @@ class TestROSNotificator(unittest.TestCase):
         self.sim_id = 0
         self.__mqtt_notificator: MQTTNotificator = MQTTNotificator(sim_id=self.sim_id)
 
-        # # Be sure we create as many publishers as required.
-        # import hbp_nrp_simserver.server
-
-        # number_of_publishers = 0
-        # for var_name in vars(hbp_nrp_simserver.server).keys():
-        #     if (var_name.startswith("TOPIC_")):
-        #         number_of_publishers += 1
-
-        # # Lifecycle topic not published by ROSNotificator
-        # number_of_publishers -= 1
-
-        # self.assertEqual(number_of_publishers, self.__mocked_rospy.Publisher.call_count)
-
-        # # Assure that also the publish method of the rospy.Publisher is
-        # # injected as a mock here so that we can use it later in our single
-        # # test methods
-        # self.__mocked_pub = self.__mocked_rospy.Publisher()
-
-    def test_ros_node_init(self):
-        self.assertEqual(self.__mqtt_notificator.mqtt_client_id, mqtt_notificator.DEFAULT_MQTT_CLIENT_ID)
-        self.mqtt_client_class_mock.assert_called_with(mqtt_notificator.DEFAULT_MQTT_CLIENT_ID, clean_session=True)
-        self.mqtt_client_mock.connect.assert_called_with(host=mqtt_notificator.DEFAULT_MQTT_HOST, port=mqtt_notificator.DEFAULT_MQTT_PORT)
+    def test_mqtt_node_init(self):
+        self.assertEqual(self.__mqtt_notificator.mqtt_client_id,
+                         mqtt_notificator.DEFAULT_MQTT_CLIENT_ID)
+        self.mqtt_client_class_mock.assert_called_with(mqtt_notificator.DEFAULT_MQTT_CLIENT_ID,
+                                                       clean_session=True)
+        self.mqtt_client_mock.connect.assert_called_with(host=mqtt_notificator.DEFAULT_MQTT_HOST,
+                                                         port=mqtt_notificator.DEFAULT_MQTT_PORT)
         self.mqtt_client_mock.loop_start.assert_called()
-
 
     def test_shutdown(self):
         self.__mqtt_notificator.shutdown()
@@ -80,11 +63,13 @@ class TestROSNotificator(unittest.TestCase):
 
     def test_publish(self):
         self.__mqtt_notificator.publish_status('foo')
-        self.mqtt_client_publish_mock.assert_called_once_with(self.__mqtt_notificator.status_topic,'foo')
+        self.mqtt_client_publish_mock.assert_called_once_with(self.__mqtt_notificator.status_topic,
+                                                              'foo')
 
         self.mqtt_client_publish_mock.reset_mock()
         self.__mqtt_notificator.publish_error('bar')
-        self.mqtt_client_mock.publish.assert_called_once_with(self.__mqtt_notificator.error_topic, 'bar')
+        self.mqtt_client_mock.publish.assert_called_once_with(self.__mqtt_notificator.error_topic,
+                                                              'bar')
 
     def test_task(self):
         self.__mqtt_notificator.start_task('task', 'subtask', 1, False)
@@ -95,7 +80,6 @@ class TestROSNotificator(unittest.TestCase):
         self.assertEqual(self.mqtt_client_publish_mock.call_count, 3)
 
     def test_start_task(self):
-
         task_name = 'test_name'
         subtask_name = 'test_subtaskname'
         number_of_subtasks = 1
@@ -107,22 +91,23 @@ class TestROSNotificator(unittest.TestCase):
                                 'number_of_subtasks': number_of_subtasks,
                                 'subtask_index': 0,
                                 'block_ui': block_ui}}
-        self.mqtt_client_publish_mock.assert_called_with(self.__mqtt_notificator.status_topic, json.dumps(message))
+        self.mqtt_client_publish_mock.assert_called_with(self.__mqtt_notificator.status_topic,
+                                                         json.dumps(message))
 
         with mock.patch.object(self.__mqtt_notificator, 'finish_task') as mock_finish:
-            self.__mqtt_notificator.start_task(task_name, subtask_name, number_of_subtasks, block_ui)
+            self.__mqtt_notificator.start_task(task_name, subtask_name, number_of_subtasks,
+                                               block_ui)
             mock_finish.assert_called_once()
-
 
     def test_task_notifier(self):
-
-        with mock.patch.object(self.__mqtt_notificator, 'start_task') as mock_start,\
-             mock.patch.object(self.__mqtt_notificator, 'finish_task') as mock_finish:
-
+        with mock.patch.object(self.__mqtt_notificator, 'start_task') as mock_start, \
+                mock.patch.object(self.__mqtt_notificator, 'finish_task') as mock_finish:
             with self.__mqtt_notificator.task_notifier('foo', 'bar'):
-                mock_start.assert_called_once_with('foo', 'bar', number_of_subtasks=0, block_ui=True)
+                mock_start.assert_called_once_with('foo', 'bar', number_of_subtasks=0,
+                                                   block_ui=True)
 
             mock_finish.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()

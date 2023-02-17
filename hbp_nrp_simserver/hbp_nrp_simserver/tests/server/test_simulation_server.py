@@ -30,13 +30,9 @@ import typing
 import unittest
 from unittest import mock
 
+from hbp_nrp_commons.tests.utilities_test import mock_properties
 import hbp_nrp_simserver.server as sim_server
 from hbp_nrp_simserver.server.simulation_server import SimulationServer
-
-
-def get_properties(klass: typing.Type) -> typing.List[str]:
-    """Returns a list of property names belonging to klass"""
-    return [p for p in dir(klass) if issubclass(property, getattr(klass, p).__class__)]
 
 
 class TestSimulationServer(unittest.TestCase):
@@ -114,15 +110,8 @@ class TestSimulationServer(unittest.TestCase):
         self.sim_server = SimulationServer(sim_settings)
 
         # mock SimulationServer properties
-        self.property_patchers: typing.Dict[str, mock._patch[mock._Mock]] = {}
-        self.property_mocks: typing.Dict[str, mock.PropertyMock] = {}
-
-        for prop in get_properties(SimulationServer):
-            patcher = mock.patch.object(SimulationServer, prop,
-                                        new_callable=mock.PropertyMock)
-            self.property_patchers[prop] = patcher
-            self.property_mocks[prop] = patcher.start()
-            self.addCleanup(patcher.stop)
+        self.property_patchers, self.property_mocks = mock_properties(SimulationServer,
+                                                                      addCleanup=self.addCleanup)
 
     # __init__
     def test_init(self):

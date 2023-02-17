@@ -25,17 +25,12 @@
 NRPScriptRunner unit test
 """
 
-import typing
 import unittest
 from unittest import mock
 
 import hbp_nrp_simserver.server as sim_server
+from hbp_nrp_commons.tests import utilities_test
 from hbp_nrp_simserver.server.nrp_script_runner import NRPScriptRunner
-
-
-def get_properties(klass: typing.Type) -> typing.List[str]:
-    """Returns a list of property names belonging to klass"""
-    return [p for p in dir(klass) if issubclass(property, getattr(klass, p).__class__)]
 
 
 class TestNRPScriptRunner(unittest.TestCase):
@@ -106,16 +101,8 @@ class TestNRPScriptRunner(unittest.TestCase):
                                                  exp_config=self.exp_config,
                                                  publish_error=self.publish_error)
 
-        # mock NRPScriptRunner properties
-        self.property_patchers: typing.Dict[str, mock._patch[mock._Mock]] = {}
-        self.property_mocks: typing.Dict[str, mock.PropertyMock] = {}
-
-        for prop in get_properties(NRPScriptRunner):
-            patcher = mock.patch.object(NRPScriptRunner, prop,
-                                        new_callable=mock.PropertyMock)
-            self.property_patchers[prop] = patcher
-            self.property_mocks[prop] = patcher.start()
-            self.addCleanup(patcher.stop)
+        self.property_patchers, self.property_mocks = utilities_test.mock_properties(
+            NRPScriptRunner, self.addCleanup)
 
     # __init__
     def test_init(self):
@@ -285,7 +272,6 @@ class TestNRPScriptRunner(unittest.TestCase):
                 complete_callback_mock.assert_called()
 
     def test_execute_script_errors(self):
-
         for error_class in (AttributeError, NameError, SyntaxError):
             with self.subTest(error_class=error_class):
                 complete_callback_mock = mock.MagicMock()
@@ -306,7 +292,6 @@ class TestNRPScriptRunner(unittest.TestCase):
                     complete_callback_mock.assert_called()
 
     def test_execute_nrp_stop_exception(self):
-
         complete_callback_mock = mock.MagicMock()
 
         self.exec_mock.side_effect = sim_server.nrp_core_wrapper.NRPStopExecution
@@ -321,7 +306,6 @@ class TestNRPScriptRunner(unittest.TestCase):
             complete_callback_mock.assert_called()
 
     def test_execute_nrp_sim_timeout_exception(self):
-
         complete_callback_mock = mock.MagicMock()
 
         self.exec_mock.side_effect = sim_server.nrp_core_wrapper.NRPSimulationTimeout
@@ -340,7 +324,6 @@ class TestNRPScriptRunner(unittest.TestCase):
             complete_callback_mock.assert_called()
 
     def test_execute_nrp_exception(self):
-
         complete_callback_mock = mock.MagicMock()
 
         self.exec_mock.side_effect = Exception
@@ -360,7 +343,6 @@ class TestNRPScriptRunner(unittest.TestCase):
 
     # _hide_modules
     def test_hide_modules(self):
-
         with mock.patch(f"{self.base_path}.sys") as sys_mock:
             mods_to_hide = ["foo", "bar", "not_imported_module_to_hide"]
 
@@ -391,7 +373,6 @@ class TestNRPScriptRunner(unittest.TestCase):
             self.assertDictEqual(orig_modules, sys_mock.modules)
 
     def test_hide_modules_exception(self):
-
         with self.assertRaises(ValueError):
             with self.nrp_script_runner._hide_modules([]):
                 raise ValueError
