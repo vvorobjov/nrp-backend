@@ -91,8 +91,8 @@ class NRPScriptRunner:
         # started event: signals __exec_thread to start 
         # set in start() cleared in pause()
         self.__exec_started_event: threading.Event = threading.Event()
-        # started event: signals __exec_thread to stop
-        # set once in stop(). Never cleared
+        # stopped event: signals __exec_thread to stop
+        # set once in stop(), never cleared
         self.__exec_stopped_event: threading.Event = threading.Event()  # one-shot. Never cleared
 
         # set up logger for the script to use
@@ -134,7 +134,7 @@ class NRPScriptRunner:
         return self.__nrp_core_wrapped.real_time if self.is_initialized else 0.
 
     @property
-    def is_initialized(self) -> Optional[bool]:
+    def is_initialized(self) -> bool:
         return self.__nrp_core_wrapped is not None
 
     def initialize(self) -> None:
@@ -226,13 +226,14 @@ class NRPScriptRunner:
 
         except (AttributeError, NameError, SyntaxError) as e:
             try:
-                cl, _, tb = sys.exc_info()
+                cl, _value, tb = sys.exc_info()
                 error_class = f"{cl.__name__}"
-                lineno = traceback.extract_tb(tb)[-1][1]
+                error_frame = traceback.extract_tb(tb)[-1]
 
-                self._publish_error(msg=f"{error_class} in main script (Line {lineno}): {str(e)}",
+                self._publish_error(msg=f"{error_class} in main script (Line {error_frame.lineno}): {str(e)}",
                                     error_type="Compile",
-                                    line_number=lineno)
+                                    line_number=error_frame.lineno,
+                                    line_text=error_frame.line)
             finally:
                 del tb  # as recommended in the docs
         except NRPStopExecution:
@@ -255,6 +256,12 @@ class NRPScriptRunner:
         :param: completed_callback: A callable to be called when the main script
                                     has terminated its execution
         """
+
+        if not self.is_initialized:
+            logger.debug("No initialized yet. Can't start. "
+                         "Simulation ID '%s'", self.sim_id)
+            return
+
         logger.info("Starting main script. Simulation ID '%s'", self.sim_id)
         self.__exec_started_event.set()
 
@@ -264,6 +271,9 @@ class NRPScriptRunner:
                                                   daemon=True,
                                                   name="MainScriptThread")
             self.__exec_thread.start()
+        else:
+            logger.debug("Another script is running. Can't start."
+                         "Simulation ID '%s'", self.sim_id)
 
     def pause(self) -> None:
         logger.info("Pausing main script. Simulation ID '%s'", self.sim_id)
@@ -281,14 +291,17 @@ class NRPScriptRunner:
             logger.debug("Waiting main script thread. Simulation ID '%s'", self.sim_id)
 
             self.__exec_thread.join(MAX_STOP_TIMEOUT)  # NOTE Waiting point
+            
             if self.__exec_thread.is_alive():
-                logger.warning("Couldn't stop main script thread."
-                               " Simulation ID '%s'", self.sim_id)
+                logger.warning(f"Couldn't stop main script thread. after {MAX_STOP_TIMEOUT=} secs"
+                               f" Simulation ID '%s'", self.sim_id)
+            else:
+                logger.debug("Main script thread joined. Simulation ID '%s'", self.sim_id)
 
     def shutdown(self) -> None:
         logger.info("Shutdown main script. Simulation ID '%s'", self.sim_id)
         try:
-            if self.__nrp_core_wrapped is None:
+            if not self.is_initialized:
                 logger.debug("Trying to shut NrpCore down twice. Ignoring. "
                              "Simulation ID '%s'", self.sim_id)
                 return
@@ -313,11 +326,15 @@ class NRPScriptRunner:
         del sys.modules['module_name']
         import module_name
         """
-        saved_modules = {module_name: sys.modules.get(module_name, None)
-                         for module_name in hide_list}
+        hidden_modules = {module_name: sys.modules[module_name]
+                         for module_name in hide_list if module_name in sys.modules}
+
+        # delete modules from sys.modules
+        for h_m_name in hidden_modules.keys():
+            del sys.modules[h_m_name]
         try:
             yield  # nothing to yield
         except Exception:
             raise  # propagate exceptions
         finally:
-            sys.modules.update(saved_modules)
+            sys.modules.update(hidden_modules)
