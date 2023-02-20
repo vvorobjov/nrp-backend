@@ -2,8 +2,10 @@
 ARG BASE_IMAGE=docker-registry.ebrains.eu/nrp/nrp-core/nrp-vanilla-ubuntu20:dev4.0
 FROM ${BASE_IMAGE}
 
-RUN DEBIAN_FRONTEND=noninteractive sudo apt-get update && sudo apt-get install -y python3.8-venv python3-restrictedpython uwsgi-core uwsgi-plugin-python3 python-is-python3
-RUN DEBIAN_FRONTEND=noninteractive sudo apt-get update && sudo apt-get install -y nginx-extras lua-cjson
+RUN sudo apt-get update && \
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3.8-venv python3-restrictedpython uwsgi-core uwsgi-plugin-python3 python-is-python3
+RUN sudo apt-get update && \
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y nginx-extras lua-cjson
 
 WORKDIR ${HOME}/nrp-backend
 
