@@ -1,2 +1,7 @@
 platform_venv
 **/*.egg-info
+**/__pycache__
+**/*.pyc
+
+.git
+Jenkinsfile
