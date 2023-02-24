@@ -22,61 +22,61 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 # ---LICENSE-END
 """
-MQTTNotificator unit test
+MQTTNotifier unit test
 """
 import json
 import unittest
 from unittest import mock
 
-from hbp_nrp_simserver.server import mqtt_notificator
-from hbp_nrp_simserver.server.mqtt_notificator import MQTTNotificator
+from hbp_nrp_simserver.server import mqtt_notifier
+from hbp_nrp_simserver.server.mqtt_notifier import MQTTNotifier
 
 
-class TestMQTTNotificator(unittest.TestCase):
+class TestMQTTNotifier(unittest.TestCase):
 
     def setUp(self):
         # mqtt
-        patcher_mqtt_client = mock.patch('hbp_nrp_simserver.server.mqtt_notificator.mqtt.Client')
+        patcher_mqtt_client = mock.patch('hbp_nrp_simserver.server.mqtt_notifier.mqtt.Client')
         self.mqtt_client_class_mock = patcher_mqtt_client.start()
         self.mqtt_client_mock = self.mqtt_client_class_mock.return_value
         self.mqtt_client_publish_mock = self.mqtt_client_mock.publish
         self.addCleanup(patcher_mqtt_client.stop)
 
         self.sim_id = 0
-        self.__mqtt_notificator: MQTTNotificator = MQTTNotificator(sim_id=self.sim_id)
+        self.__mqtt_notifier: MQTTNotifier = MQTTNotifier(sim_id=self.sim_id)
 
     def test_mqtt_node_init(self):
-        self.assertEqual(self.__mqtt_notificator.mqtt_client_id,
-                         mqtt_notificator.DEFAULT_MQTT_CLIENT_ID)
-        self.mqtt_client_class_mock.assert_called_with(mqtt_notificator.DEFAULT_MQTT_CLIENT_ID,
+        self.assertEqual(self.__mqtt_notifier.mqtt_client_id,
+                         mqtt_notifier.DEFAULT_MQTT_CLIENT_ID)
+        self.mqtt_client_class_mock.assert_called_with(mqtt_notifier.DEFAULT_MQTT_CLIENT_ID,
                                                        clean_session=True)
-        self.mqtt_client_mock.connect.assert_called_with(host=mqtt_notificator.DEFAULT_MQTT_HOST,
-                                                         port=mqtt_notificator.DEFAULT_MQTT_PORT)
+        self.mqtt_client_mock.connect.assert_called_with(host=mqtt_notifier.DEFAULT_MQTT_HOST,
+                                                         port=mqtt_notifier.DEFAULT_MQTT_PORT)
         self.mqtt_client_mock.loop_start.assert_called()
 
     def test_shutdown(self):
-        self.__mqtt_notificator.shutdown()
+        self.__mqtt_notifier.shutdown()
         self.mqtt_client_mock.loop_stop.assert_called()
         self.mqtt_client_mock.disconnect.assert_called()
         # no publishing after shutdown
         self.assertFalse(self.mqtt_client_publish_mock.called)
 
     def test_publish(self):
-        self.__mqtt_notificator.publish_status('foo')
-        self.mqtt_client_publish_mock.assert_called_once_with(self.__mqtt_notificator.status_topic,
+        self.__mqtt_notifier.publish_status('foo')
+        self.mqtt_client_publish_mock.assert_called_once_with(self.__mqtt_notifier.status_topic,
                                                               'foo')
 
         self.mqtt_client_publish_mock.reset_mock()
-        self.__mqtt_notificator.publish_error('bar')
-        self.mqtt_client_mock.publish.assert_called_once_with(self.__mqtt_notificator.error_topic,
+        self.__mqtt_notifier.publish_error('bar')
+        self.mqtt_client_mock.publish.assert_called_once_with(self.__mqtt_notifier.error_topic,
                                                               'bar')
 
     def test_task(self):
-        self.__mqtt_notificator.start_task('task', 'subtask', 1, False)
+        self.__mqtt_notifier.start_task('task', 'subtask', 1, False)
         self.assertEqual(self.mqtt_client_publish_mock.call_count, 1)
-        self.__mqtt_notificator.update_task('new_subtask', True, False)
+        self.__mqtt_notifier.update_task('new_subtask', True, False)
         self.assertEqual(self.mqtt_client_publish_mock.call_count, 2)
-        self.__mqtt_notificator.finish_task()
+        self.__mqtt_notifier.finish_task()
         self.assertEqual(self.mqtt_client_publish_mock.call_count, 3)
 
     def test_start_task(self):
@@ -84,25 +84,25 @@ class TestMQTTNotificator(unittest.TestCase):
         subtask_name = 'test_subtaskname'
         number_of_subtasks = 1
         block_ui = False
-        self.__mqtt_notificator.start_task(task_name, subtask_name, number_of_subtasks, block_ui)
+        self.__mqtt_notifier.start_task(task_name, subtask_name, number_of_subtasks, block_ui)
         self.assertEqual(1, self.mqtt_client_publish_mock.call_count)
         message = {'progress': {'task': task_name,
                                 'subtask': subtask_name,
                                 'number_of_subtasks': number_of_subtasks,
                                 'subtask_index': 0,
                                 'block_ui': block_ui}}
-        self.mqtt_client_publish_mock.assert_called_with(self.__mqtt_notificator.status_topic,
+        self.mqtt_client_publish_mock.assert_called_with(self.__mqtt_notifier.status_topic,
                                                          json.dumps(message))
 
-        with mock.patch.object(self.__mqtt_notificator, 'finish_task') as mock_finish:
-            self.__mqtt_notificator.start_task(task_name, subtask_name, number_of_subtasks,
+        with mock.patch.object(self.__mqtt_notifier, 'finish_task') as mock_finish:
+            self.__mqtt_notifier.start_task(task_name, subtask_name, number_of_subtasks,
                                                block_ui)
             mock_finish.assert_called_once()
 
     def test_task_notifier(self):
-        with mock.patch.object(self.__mqtt_notificator, 'start_task') as mock_start, \
-                mock.patch.object(self.__mqtt_notificator, 'finish_task') as mock_finish:
-            with self.__mqtt_notificator.task_notifier('foo', 'bar'):
+        with mock.patch.object(self.__mqtt_notifier, 'start_task') as mock_start, \
+                mock.patch.object(self.__mqtt_notifier, 'finish_task') as mock_finish:
+            with self.__mqtt_notifier.task_notifier('foo', 'bar'):
                 mock_start.assert_called_once_with('foo', 'bar', number_of_subtasks=0,
                                                    block_ui=True)
 

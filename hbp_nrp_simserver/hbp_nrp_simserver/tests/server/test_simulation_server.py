@@ -92,10 +92,10 @@ class TestSimulationServer(unittest.TestCase):
         self.os_mock = patcher_os.start()
         self.addCleanup(patcher_os.stop)
 
-        # MQTTNotificator
-        patcher_notificator = mock.patch(f"{self.base_path}.MQTTNotificator")
-        self.notificator_mock = patcher_notificator.start()
-        self.addCleanup(patcher_notificator.stop)
+        # MQTTNotifier
+        patcher_notifier = mock.patch(f"{self.base_path}.MQTTNotifier")
+        self.notifier_mock = patcher_notifier.start()
+        self.addCleanup(patcher_notifier.stop)
 
         # NRPScriptRunner
         patcher_script_runner = mock.patch(f"{self.base_path}.NRPScriptRunner")
@@ -123,7 +123,7 @@ class TestSimulationServer(unittest.TestCase):
     def test_publish_state_update_not_initialized(self):
         self.property_mocks["is_initialized"].return_value = False
         self.sim_server.publish_state_update()
-        self.notificator_mock.return_value.publish_status.assert_not_called()
+        self.notifier_mock.return_value.publish_status.assert_not_called()
 
     def test_publish_state_update_exception(self):
         self.property_mocks["is_initialized"].return_value = True
@@ -133,13 +133,13 @@ class TestSimulationServer(unittest.TestCase):
 
     def test_publish_state_update(self):
         self.property_mocks["is_initialized"].return_value = True
-        with mock.patch.object(self.sim_server, "_notificator") as _notificator_mock:
+        with mock.patch.object(self.sim_server, "_notifier") as _notifier_mock:
             with mock.patch.object(self.sim_server, "_create_state_message"):
                 with mock.patch(f"{self.base_path}.json") as json_mock:
                     json_mock.dumps.return_value = mock.sentinel.json_msg
 
                     self.sim_server.publish_state_update()
-                    _notificator_mock.publish_status.assert_called_with(mock.sentinel.json_msg)
+                    _notifier_mock.publish_status.assert_called_with(mock.sentinel.json_msg)
 
     # initialize
     def test_initialize(self):
@@ -150,7 +150,7 @@ class TestSimulationServer(unittest.TestCase):
 
         self.exp_conf_utils_mock.mqtt_broker_host_port.assert_called_with(
             self.exp_conf_utils_mock.validate.return_value)
-        self.notificator_mock.assert_called_once()
+        self.notifier_mock.assert_called_once()
         self.script_runner_mock.assert_called_once()
         self.lifecycle_mock.assert_called_with(self.sim_server, mock.sentinel.except_hook)
         self.timer_mock.return_value.start.assert_called()
@@ -169,7 +169,7 @@ class TestSimulationServer(unittest.TestCase):
 
         with self.assertRaises(Exception):
             self.sim_server.initialize()
-            self.notificator_mock.return_value.shutdown.assert_called()
+            self.notifier_mock.return_value.shutdown.assert_called()
 
     def test_initialize_lifecycle_exception(self):
         # SimulationServerLifecycle raises 
@@ -177,7 +177,7 @@ class TestSimulationServer(unittest.TestCase):
 
         with self.assertRaises(Exception):
             self.sim_server.initialize()
-            self.notificator_mock.return_value.shutdown.assert_called()
+            self.notifier_mock.return_value.shutdown.assert_called()
 
     # shutdown
     def test_shutdown_not_initialized(self):
@@ -196,7 +196,7 @@ class TestSimulationServer(unittest.TestCase):
 
         self.lifecycle_mock.return_value.done_event.wait.assert_called()
         self.assertIs(self.sim_server.exit_state, mock.sentinel.failed)
-        self.notificator_mock.return_value.shutdown.assert_called()
+        self.notifier_mock.return_value.shutdown.assert_called()
 
         # should not be initialized
         self.property_patchers["is_initialized"].stop()
@@ -221,7 +221,7 @@ class TestSimulationServer(unittest.TestCase):
 
         self.lifecycle_mock.return_value.done_event.wait.assert_called()
         self.assertIs(self.sim_server.exit_state, mock.sentinel.stopped)
-        self.notificator_mock.return_value.shutdown.assert_called()
+        self.notifier_mock.return_value.shutdown.assert_called()
 
         # should not be initialized
         self.property_patchers["is_initialized"].stop()
@@ -248,7 +248,7 @@ class TestSimulationServer(unittest.TestCase):
         # should not call wait
         self.lifecycle_mock.return_value.done_event.wait.assert_not_called()
 
-        self.notificator_mock.return_value.shutdown.assert_called()
+        self.notifier_mock.return_value.shutdown.assert_called()
 
         # should not be initialized
         self.property_patchers["is_initialized"].stop()
@@ -257,11 +257,11 @@ class TestSimulationServer(unittest.TestCase):
         # should cancel the status update timer
         self.timer_mock.return_value.cancel_all.assert_called()
 
-    def test_shutdown_notificator_exception(self):
+    def test_shutdown_notifier_exception(self):
         self.sim_server.initialize()
         self.property_mocks["is_initialized"].return_value = True
 
-        self.notificator_mock.return_value.shutdown.side_effect = Exception
+        self.notifier_mock.return_value.shutdown.side_effect = Exception
 
         with self.assertRaises(Exception) as ex_cm:
             self.sim_server.shutdown()

@@ -22,7 +22,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 # ---LICENSE-END
 """
-This module implements a MQTT Notificator interface for status/error messages.
+This module implements a MQTT Notifier interface for status/error messages.
 """
 
 import contextlib
@@ -36,12 +36,12 @@ from . import TOPIC_STATUS, TOPIC_ERROR
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_MQTT_CLIENT_ID = "mqtt_notificator"
+DEFAULT_MQTT_CLIENT_ID = "mqtt_notifier"
 DEFAULT_MQTT_HOST = "localhost"
 DEFAULT_MQTT_PORT = 1883
 
 
-class MQTTNotificator:
+class MQTTNotifier:
     """
     This class encapsulates publishing of state/errors/task status to the frontend/clients.
     """
@@ -72,7 +72,7 @@ class MQTTNotificator:
         self.__mqtt_client.connect(host=self.mqtt_broker_hostname, port=self.mqtt_broker_port)
         self.__mqtt_client.loop_start()  # start message processing thread
 
-        logger.info("MQTT notificator initialized. Simulation ID: '%s'", self.sim_id)
+        logger.info("MQTT notifier initialized. Simulation ID: '%s'", self.sim_id)
 
     def __on_connect(self, _client, _userdata, _flags, _rc):
         logger.debug("Connected to MQTT broker at %s:%d with 'id' %s. Simulation ID: '%s'",
@@ -82,7 +82,7 @@ class MQTTNotificator:
         """
         Shutdown all publishers, notification will no longer function after called.
         """
-        logger.info('Shutting down MQTT notificator')
+        logger.info('Shutting down MQTT notifier')
         self.__mqtt_client.loop_stop()
         self.__mqtt_client.disconnect()
         self.__mqtt_client = None

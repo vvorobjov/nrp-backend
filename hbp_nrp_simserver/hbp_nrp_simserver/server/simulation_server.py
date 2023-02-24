@@ -45,7 +45,7 @@ import hbp_nrp_simserver.server.experiment_configuration as exp_conf_utils
 import hbp_nrp_simserver.server.simulation_server_lifecycle as simserver_lifecycle
 from hbp_nrp_commons.workspace.settings import Settings
 from hbp_nrp_commons.simulation_lifecycle import SimulationLifecycle
-from hbp_nrp_simserver.server.mqtt_notificator import MQTTNotificator
+from hbp_nrp_simserver.server.mqtt_notifier import MQTTNotifier
 from hbp_nrp_simserver.server.nrp_script_runner import NRPScriptRunner
 
 from hbp_nrp_commons import set_up_logger
@@ -80,7 +80,7 @@ class SimulationServer:
 
         # set during initialization
         self.exp_config: Optional[exp_conf_utils.type_class] = None
-        self._notificator: Optional[MQTTNotificator] = None
+        self._notifier: Optional[MQTTNotifier] = None
         self.__lifecycle: Optional[simserver_lifecycle.SimulationServerLifecycle] = None
         self.exit_state: Optional[str] = None
         self.__nrp_script_runner: Optional[NRPScriptRunner] = None
@@ -134,7 +134,7 @@ class SimulationServer:
 
     @property
     def is_initialized(self) -> bool:
-        return (self._notificator is not None) and \
+        return (self._notifier is not None) and \
             (self.__nrp_script_runner is not None) and \
             (self.__lifecycle is not None)
 
@@ -142,7 +142,7 @@ class SimulationServer:
         """
         Initialize the simulation server:
         - parse and validate the experiment configuration file
-        - create the MQTT notificator
+        - create the MQTT notifier
         - create NRPScriptRunner
         - create SimulationServerLifecycle
         - start the status update timer
@@ -163,8 +163,8 @@ class SimulationServer:
             broker_host, broker_port = exp_conf_utils.mqtt_broker_host_port(self.exp_config)
 
 
-        logger.debug("Setting up simulation Notificator")
-        self._notificator = MQTTNotificator(int(self.simulation_id),
+        logger.debug("Setting up simulation Notifier")
+        self._notifier = MQTTNotifier(int(self.simulation_id),
                                             broker_hostname=broker_host,
                                             broker_port=int(broker_port))
 
@@ -178,7 +178,7 @@ class SimulationServer:
             self.__lifecycle = simserver_lifecycle.SimulationServerLifecycle(
                 self, except_hook)
         except Exception:
-            self._notificator.shutdown()
+            self._notifier.shutdown()
             raise
 
         self.__status_update_timer.start()
@@ -211,7 +211,7 @@ class SimulationServer:
             # logger.debug("Sending status message: %s."
             #             " Simulation ID '%s'", json_message, self.simulation_id)
 
-            self._notificator.publish_status(json_message)
+            self._notifier.publish_status(json_message)
 
         # pylint: disable=broad-except
         except Exception as e:
@@ -225,7 +225,7 @@ class SimulationServer:
             return
 
         try:
-            with self._notificator.task_notifier("Shutting down Simulation"):
+            with self._notifier.task_notifier("Shutting down Simulation"):
                 try:
                     if self.__lifecycle.is_failed() or self.__lifecycle.is_stopped():
                         logger.debug(
@@ -255,15 +255,15 @@ class SimulationServer:
                     self.__lifecycle = None
                     self.__nrp_script_runner = None
 
-            # shutdown MQTTNotificator
+            # shutdown MQTTNotifier
             try:
-                self._notificator.shutdown()
+                self._notifier.shutdown()
             except Exception as e:
-                logger.error("The MQTT notificator could not be shut down. Simulation ID '%s'",
+                logger.error("The MQTT notifier could not be shut down. Simulation ID '%s'",
                              self.simulation_id)
                 logger.exception(e)
             finally:
-                self._notificator = None
+                self._notifier = None
 
         finally:
             self.__status_update_timer.cancel_all()
@@ -298,8 +298,8 @@ class SimulationServer:
                                "line_number": line_number, "offset": offset,
                                "line_text": line_text})
 
-        if self._notificator:
-            self._notificator.publish_error(json_str)
+        if self._notifier:
+            self._notifier.publish_error(json_str)
         else:
             logger.warning("Publishing an Error but a Notifier is unavailable."
                            " Simulation ID:' %s': '%s'", self.simulation_id, json_str)

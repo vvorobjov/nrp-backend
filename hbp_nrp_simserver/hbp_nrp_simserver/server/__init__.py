@@ -23,15 +23,14 @@
 # ---LICENSE-END
 """
 This is package contains the Simulation server.
-It runs user-defined python scripts that uses on nrp_core.client.NRPCore.
+It runs user-defined python scripts that use an nrp_core.client.NRPCore.
 
-A simulation server can be managed by an instance of SimulationServerInstance and once initialized, it sends
-on MQTT topics, informations about its status (/status) and,
-on error, a message describing such error (/runtime_error).
+A simulation server can be managed by an instance of SimulationServerInstance and once initialized it sends,
+on MQTT topics, information about its status (/status) and, on error, a message describing such error (/runtime_error).
 
 The runtime state of the server is controlled via an instance of SimulationLifecycle that reacts to 
-state changes initiated by the user via the REST API exposed by hbp_nrp_backend.
-Besides those, state changes initiated by the Simulation server are the ones dependent on the simulation being run, i.e.
+state changes initiated by the user via the REST API exposed by hbp_nrp_backend.server.
+Besides those, state changes initiated by the Simulation server are the ones that depend on the simulation being run, i.e.
 'completed' and 'failed'.
 
 """
