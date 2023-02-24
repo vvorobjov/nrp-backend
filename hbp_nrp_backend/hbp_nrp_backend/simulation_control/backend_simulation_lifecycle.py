@@ -129,7 +129,7 @@ class BackendSimulationLifecycle(SimulationLifecycle):
 
             # file or directories (i.e. ending with "/")
             # in the experiment folder to ignore in cloning
-            exclude_list = ["*.log.zip", "logs/", '__pycache__/']
+            exclude_list = ["*.log", "*.log.zip", "logs/", '__pycache__/']
 
             # clone the experiment files in local temporary directory
             self.__storage_client.clone_all_experiment_files(
