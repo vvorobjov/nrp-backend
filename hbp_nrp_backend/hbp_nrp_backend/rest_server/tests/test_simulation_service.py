@@ -25,7 +25,7 @@
 Unit tests for the simulation setup
 """
 
-__author__ = 'NRP software team, GeorgHinkel'
+__author__ = 'NRP software team, Georg Hinkel, Ugo Albanese'
 
 
 import unittest

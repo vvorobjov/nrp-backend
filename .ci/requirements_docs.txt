@@ -1,4 +1,4 @@
-#the following is required for the unit testing
+#the following is required for building docs
 docutils==0.16
 sphinx==3.4.3
 sphinx-rtd-theme==0.5.1

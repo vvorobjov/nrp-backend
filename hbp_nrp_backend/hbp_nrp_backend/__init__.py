@@ -1,12 +1,14 @@
 """
-This package contains the python code to run the REST web server and supportive tooling
+This package contains the python code to run the REST server.
+TODO 
+
 """
 
 import time
 
 from .version import VERSION as __version__   # pylint: disable=W0611
 
-__author__ = 'NRP software team, GeorgHinkel'
+__author__ = 'NRP software team, Georg Hinkel, Ugo Albanese'
 
 
 class NRPServicesGeneralException(Exception):

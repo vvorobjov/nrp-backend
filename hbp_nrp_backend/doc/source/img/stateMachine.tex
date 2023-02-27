@@ -1,0 +1,37 @@
+\documentclass[tikz,border=2pt]{standalone}
+
+\usepackage[utf8]{inputenc}
+\usepackage{pgf}
+\usepackage{tikz}
+\usetikzlibrary{arrows,automata}
+
+\begin{document}
+
+\begin{tikzpicture}[->,>=stealth',auto,semithick,node distance=5cm,text width={width("initialized")},
+                    align=center]
+
+    \node[state]         (created) {created};
+    \node[state]         (paused) [right of=created]{paused};
+    \node[state]         (started) [right of=paused]{started};
+    \node[state]         (completed) [right of=started]{completed};
+    \node[state,double]  (stopped)[above of=paused]{stopped};
+    \node[state,double]  (failed) [below of=paused]{failed};
+
+    \path (created) edge node {initialized} (paused)
+                    edge node {} (failed)
+                    edge node {} (stopped)
+          (paused)  edge [bend left=20] node [below] {} (started)
+                    edge node [pos=0.86, below] {} (stopped)
+                    edge node [left] {} (failed)
+          (started) edge [bend left=20] node[below]{} (paused)
+                    edge node {} (stopped)
+                    edge node {} (completed)
+                    edge node [pos=0.50] {} (failed)
+          (completed) edge [be-nd right=20] (stopped)
+                      edge [bend left=20] (failed);
+
+     \draw[->] ([xshift=-5mm]created.west) -- (created);
+
+\end{tikzpicture}
+
+\end{document}

@@ -27,7 +27,7 @@ Runs the REST server
 
 import os
 
-__author__ = 'NRP software team, GeorgHinkel'
+__author__ = 'NRP software team, Georg Hinkel, Ugo Albanese'
 
 import logging
 import sys

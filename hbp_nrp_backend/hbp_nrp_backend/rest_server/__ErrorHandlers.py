@@ -27,7 +27,7 @@ For 500 errors, a json object understandable by the HBP
 frontend libraries is returned.
 """
 
-__author__ = 'NRP software team, GeorgHinkel'
+__author__ = 'NRP software team, Georg Hinkel, Ugo Albanese'
 
 import json
 import logging

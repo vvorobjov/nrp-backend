@@ -278,7 +278,6 @@ class StorageClient:
     def create_and_extract_zip(self, token: str, experiment: str, name: str, content):
         """
         Creates and extracts a zip under an experiment.
-
         .. TODO:: add a REST endpoint in the storage to allow the transfer of multiple files.
         For instance we might add a create_files(files_list) in StorageClient.
         Internally, the files might be zipped on the client and unzipped on the server.
@@ -287,6 +286,7 @@ class StorageClient:
         :param experiment: the name of the experiment
         :param name: the name of the zip
         :param content: the content of the file
+
         """
         try:
             request_url = '{proxy_url}/storage/{experiment}/{name}?type=zip'.format(

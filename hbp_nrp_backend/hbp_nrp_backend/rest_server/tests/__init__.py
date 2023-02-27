@@ -2,7 +2,7 @@
 This module contains unit tests for the experiment backend
 """
 
-__author__ = 'NRP software team, GeorgHinkel'
+__author__ = 'NRP software team, Georg Hinkel, Ugo Albanese'
 
 import unittest
 from hbp_nrp_backend.rest_server import app

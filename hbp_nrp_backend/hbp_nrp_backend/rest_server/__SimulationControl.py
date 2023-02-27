@@ -24,7 +24,7 @@
 """
 This module contains the REST implementation for the simulation control
 """
-__author__ = 'NRP software team, GeorgHinkel'
+__author__ = 'NRP software team, Georg Hinkel, Ugo Albanese'
 
 from flask_restful import Resource, abort, marshal_with
 

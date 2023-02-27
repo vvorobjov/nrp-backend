@@ -2,7 +2,7 @@
 This package contains the implementation of the REST server to control experiments
 """
 
-__author__ = 'NRP software team, GeorgHinkel'
+__author__ = 'NRP software team, Georg Hinkel, Ugo Albanese'
 
 from flask import Flask
 from flask_restful import Api
