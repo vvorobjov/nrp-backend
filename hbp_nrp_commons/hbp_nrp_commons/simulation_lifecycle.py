@@ -57,7 +57,7 @@ class SimulationLifecycle:
     After a transition, state changes may be propagated on the :code:`synchronization_topic`
     to other instances of :class:`.SimulationLifecycle`.
 
-    See :ref:`"NRP Backend's life-cycle state machine" <life-cycle>` in :code:`hbp_nrp_backend` docs for more info.
+    See :ref:`"NRP Backend's life-cycle state machine" <life-cycles>` in :code:`hbp_nrp_backend` docs for more info.
 
     """
 

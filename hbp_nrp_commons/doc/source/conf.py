@@ -61,3 +61,5 @@ texinfo_documents = [
    u'hinkel', 'hbp_nrp_commons', 'Common functionality shared in the backend',
    'Neurorobotics'),
 ]
+
+autodoc_mock_imports = ['nrp_core']

@@ -1,7 +1,7 @@
 .. _hbp_nrp_commons_docs:
 
-NRP Commons (package hbp_nrp_commons)
-=====================================
+NRP Commons
+===========
 
 
 Welcome to :class:`hbp_nrp_commons` documentation!

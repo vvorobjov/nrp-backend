@@ -66,4 +66,4 @@ texinfo_documents = [
 
 
 # Mocking external deps
-autodoc_mock_imports = []
+autodoc_mock_imports = ['nrp_core']
