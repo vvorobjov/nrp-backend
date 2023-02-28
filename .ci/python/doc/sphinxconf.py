@@ -30,12 +30,15 @@ from unittest import mock
 # -- General configuration -----------------------------------------------------
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.viewcode',
-              'sphinxcontrib.apidoc',
-              'sphinxcontrib.images',
-              'sphinx.ext.coverage',
-              'sphinx.ext.autosummary',
-              'sphinx.ext.todo']
+extensions = [  'sphinx.ext.viewcode',
+                'sphinx.ext.autodoc',
+                'sphinxcontrib.httpdomain',
+                'sphinxcontrib.autohttp.flask',
+                'sphinxcontrib.apidoc',
+                'sphinxcontrib.images',
+                'sphinx.ext.coverage',
+                'sphinx.ext.autosummary',
+                'sphinx.ext.todo']
 
 # This parameters should be defined in individual conf.py
 # i.e.:

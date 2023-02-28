@@ -1,7 +1,7 @@
-Python developer API
-====================
+.. _backend-rest-api:
 
-.. toctree::
-   :maxdepth: 6
+REST API
+========
 
-   apidoc/hbp_nrp_backend
+.. autoflask:: hbp_nrp_backend.rest_server:app
+   :undoc-static:
