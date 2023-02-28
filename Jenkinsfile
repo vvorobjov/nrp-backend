@@ -37,8 +37,11 @@ pipeline {
             label 'ci_label'
 
             // NEXUS_REGISTRY_IP and NEXUS_REGISTRY_PORT are Jenkins global variables
-            image "${env.NEXUS_REGISTRY_IP}:${env.NEXUS_REGISTRY_PORT}/nrp-core/nrp-vanilla-ubuntu20:${IMG_TAG}"
             args '--entrypoint="" -u root --privileged'
+            registryUrl "https://${env.NEXUS_REGISTRY_IP}:${env.NEXUS_REGISTRY_PORT}"
+            registryCredentialsId 'nexusadmin'
+            image "nrp-core/nrp-vanilla-ubuntu20:${IMG_TAG}"
+            alwaysPull true
         }
     }
     options { 
