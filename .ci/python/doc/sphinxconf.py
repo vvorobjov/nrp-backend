@@ -31,7 +31,6 @@ from unittest import mock
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.viewcode',
-              'sphinxcontrib.autohttp.flask',
               'sphinxcontrib.apidoc',
               'sphinxcontrib.images',
               'sphinx.ext.coverage',

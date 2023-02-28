@@ -65,4 +65,4 @@ texinfo_documents = [
 ]
 
 # -- Mocking for importing external modules ------------------------------------
-autodoc_mock_imports = []
+autodoc_mock_imports = ['nrp_core']
