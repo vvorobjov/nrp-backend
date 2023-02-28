@@ -22,7 +22,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 # ---LICENSE-END
 """
-This package defines the simulation lifecycle such as used in the NRP
+This package defines the simulation lifecycle used in the NRP Backend and Simulation Server components.
 """
 
 import os
@@ -47,15 +47,18 @@ logging.getLogger("transitions").setLevel(logger.getEffectiveLevel() + 10)
 
 class SimulationLifecycle:
     """
-    Defines the lifecycle of a simulation.
+    Defines the lifecycle of a simulation in terms of state machine defined using the `pytransitions <https://github.com/pytransitions/transitions>`_ package.
 
-    The Simulation is created in the 'created' initial state; the 'initialized' trigger makes it transition to 'paused'.
-    The 'started' trigger makes it move to started, 
-    then 'completed' to 'completed' and finally, 'stopped' to the 'stopped' final state.
-    From any running state, the 'failed' trigger will result in the final 'failed' state.
+    A Simulation is created in the :code:`created` initial state; the :code:`initialized` trigger makes it transition to :code:`paused`.
+    The :code:`started` trigger makes it move to :code:`started` state, 
+    then :code:`completed` to :code:`completed` and finally, :code:`stopped` to the :code:`stopped` final state.
+    From any running state, the :code:`failed` trigger will result in the final :code:`failed` state.
 
-    After a transition, state changes may be propagated on the 'synchronization_topic'
-    to other instances of SimulationLifecycle.
+    After a transition, state changes may be propagated on the :code:`synchronization_topic`
+    to other instances of :class:`.SimulationLifecycle`.
+
+    See :ref:`"NRP Backend's life-cycle state machine" <life-cycle>` in :code:`hbp_nrp_backend` docs for more info.
+
     """
 
     STATES: List[str] = [

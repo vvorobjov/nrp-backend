@@ -60,8 +60,8 @@ class NRPScriptRunner:
     
     The script execution can be started, paused and stopped.
     The script is expected to use the injected 'nrp' handler
-    (an instance of NRPCoreWrapper) and call its run_loop method
-    until a NRPSimulationTimeout is raised.
+    (an instance of :class:`.NrpCoreWrapper`) and call its run_loop method
+    until a :class:`.NRPSimulationTimeout` is raised.
     """
 
     def __init__(self,
@@ -140,16 +140,17 @@ class NRPScriptRunner:
     def initialize(self) -> None:
         """
         Initialize the script runner:
-        - read the script
-        - initialize the (wrapped) nrp_core client
+            - read the script
+            - initialize the (wrapped) nrp_core client
 
-        Any nrp_core client initialization error will be raised.
+        Any initialization error from nrp_core client will be raised.
 
         It gets called by whatever component is controlling the simulation
-        (i.e. a SimulationServerLifecycle)
+        (i.e. a :class:`.SimulationServerLifecycle`)
 
-        :raises: IOError when the script can't be read from the file system
-        :raises: SyntaxError when the script code has such an error
+        :raises IOError: when the script can't be read from the file system
+        :raises SyntaxError: when the script code has such an error
+
         """
 
         # called by lifecycle initialize method
@@ -252,9 +253,10 @@ class NRPScriptRunner:
 
     def start(self, completed_callback: Callable[[], None] = lambda: None) -> None:
         """
-        Starts the script
-        :param: completed_callback: A callable to be called when the main script
-                                    has terminated its execution
+        Starts the script.
+
+        :param completed_callback: A callable to be called when the main script has terminated its execution.
+
         """
 
         if not self.is_initialized:
@@ -276,12 +278,15 @@ class NRPScriptRunner:
                          "Simulation ID '%s'", self.sim_id)
 
     def pause(self) -> None:
+        """
+        Pauses the script execution.
+        """
         logger.info("Pausing main script. Simulation ID '%s'", self.sim_id)
         self.__exec_started_event.clear()
 
     def stop(self) -> None:
         """
-        Stops the script execution
+        Stops the script execution.
         """
         logger.info("Stopping main script. Simulation ID '%s'", self.sim_id)
         if self.__exec_thread is not None:

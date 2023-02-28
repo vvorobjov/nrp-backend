@@ -22,7 +22,7 @@ def get_simulation(sim_id: sim_id_type) -> Simulation:
 
     :param sim_id: The simulation id
     :returns: The simulation object with the given sim_id, None otherwise
-    :raises: ValueError When sim_id simulation doesn't exist
+    :raises ValueError: When sim_id simulation doesn't exist
     """
     # NOTE change in case of different type of simulation ID
     if sim_id < 0 or sim_id >= len(simulations):

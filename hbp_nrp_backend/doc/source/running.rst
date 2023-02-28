@@ -3,84 +3,78 @@
 Running the Backend
 ===================
 
-.. todo:: Add author/responsible
-
 Running on a local machine
 --------------------------
 
 This is a step-by-step description for running the backend for the case that **the backend is locally installed on developer a machine**.
 
+.. TODO ref to installation from source
 
-1. Make sure you installed everything according to :ref:`installation`
+1. Make sure you installed everything according to :ref:`installation`. The following 
 
-2. Start the required software components such as ``roscore``, the backend server and the ``gazebo`` server. This can
-   all be done using the ``runbackend`` script as decribed in :ref:`installation` or manually by:
+.. TODO ref to installation from source
 
-   a. Start a roscore:
+2. Start the required component (i.e. the :code:`MQTT Broker` and the :code:`Storage Proxy`) refer to:  
 
-      .. code-block:: bash
-
-         roscore
-
-   b. Start the backend server (in a different terminal window):
+   a. Start the backend server:
 
       .. code-block:: bash
 
-          python $HBP/nrp-backend/hbp_nrp_backend/hbp_nrp_backend/runserver.py
+         source $NRP_VIRTUAL_ENV/bin/activate
+         python $HBP/nrp-backend/hbp_nrp_backend/hbp_nrp_backend/runserver.py
 
       This will start the backend server running on 127.0.0.1:5000. If you wish to run the server on another port, you have
       to provide another argument
 
       .. code-block:: bash
 
+         source $NRP_VIRTUAL_ENV/bin/activate
          python $HBP/nrp-backend/hbp_nrp_backend/hbp_nrp_backend/runserver.py 9000
-         
-   c. Start the ROSCLESimulationFactory, a ROS service needed by the backend to start an instance of the CLE
+      
+      .. note:: use the aliases provided by :code:`$HBP/nrp-user-scripts/nrp_aliases`: :code:`nrp-backend` and :code:`nrp-backend-verbose`. The virtual environment will be automatically activated.
+   
+   b. Use the :code:`NRP Frontend` to clone a template experiment and to launch it. If ID of the experiment is known in advance, requests can be sent using any REST client (e.g. Postman or curl) 
 
-      .. code-block:: bash
 
-         python $HBP/CLE/hbp_nrp_cle/hbp_nrp_cle/cle/ROSCLESimulationFactory.py
-   d. Start the Gazebo server. Be careful that our patched Gazebo plugin is loaded instead of the default one.
+Debugging
+---------
 
-      .. code-block:: bash
+NRP Backend supports remote debugging two of the most common :abbr:`IDEs (integrated development environment)`: `Visual Studio Code <https://code.visualstudio.com>`_  and `PyCharm <https://www.jetbrains.com/pycharm/>`_.
+The aliases for running NRP Backend in debug mode, provided in :code:`$HBP/nrp-user-scripts/` are :code:`nrp-backend-debug-vscode` and :code:`nrp-backend-debug-pycharm`, respectively.
+When started in debug mode, NRP Backend will wait for the debugger connection on port 9991.
 
-            source $HBP/GazeboRosPackages/devel/setup.bash
-            rosrun gazebo_ros gzserver
+Below, a sample configuration from :abbr:`VScode (Visual Studio Code)`'s launch.json file is listed:
 
-   e. Start a Gazebo client if you wish to view the results on your machine (not required when using the Frontend)
+.. code-block:: json
 
-      .. code-block:: bash
-
-            rosrun gazebo_ros gzclient
-
-   f. Load an experiment. The experiment configuration is the path to your experiment relative to
-      $NRP_MODELS_DIRECTORY or your current folder if the first is not set
-
-      .. code-block:: bash
-
-            curl -X POST 127.0.0.1:5000/simulation -d '{"experimentID":"cloned_experiment_id"}'
+        {
+            "name": "NRP Backend: Remote Attach",
+            "type": "python",
+            "request": "attach",
+            "subProcess": true,
+            "connect": {
+                "host": "localhost",
+                "port": 9991
+            },
+            "justMyCode": false
+        },
 
 
 Building the documentation
 --------------------------
 
-.. note:: The following options are available only for the core developers, who has writing access rights to the repositories and installed the NRP in developer mode: :code:`NRP_INSTALL_MODE=dev`.
-
 General documentation and Python API
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The documentation and Python API (the pages you are currently reading) is created and can be read by calling
+The documentation and Python API (the pages you are currently reading) is created by:
 
 .. code-block:: bash
 
-    cd $EXDB/doc
-    make html
-    firefox build/html/index.html
+    cd $HBP/nrp-backend
+    make doc # index at build/html/index.html
 
 
-Running the unit test on a local machine
-----------------------------------------------------
-
-.. note:: The following options are available only for the core developers, who has writing access rights to the repositories and installed the NRP in developer mode: :code:`NRP_INSTALL_MODE=dev`.
+Unit testing
+---------------
 
 After downloading :ref:`installation` of the NRP and its components, you can run linting checks of the NRP Backend and related modules. 
 

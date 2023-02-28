@@ -153,11 +153,12 @@ class NrpCoreWrapper:
 
         See nrp_core.client.NrpCore.run_loop for further details.
 
-        :raises: NRPSimulationTimeout if running for num_iterations will exceed the configured
+        :raises NRPSimulationTimeout: if running for num_iterations will exceed the configured
                  simulation timeout (i.e. curr_timestep + num_iterations > max_timestep)
-        :raises
+        :raises NRPStopExecution: when stopped_event is set.
 
         :return: same as NrpCore.run_loop, i.e any JSON data passed in the response or None
+
         """
 
         logger.debug("run_loop: waiting on paused event. Simulation ID '%s'", self.sim_id)

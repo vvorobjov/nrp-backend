@@ -2,6 +2,6 @@ Python developer API
 ====================
 
 .. toctree::
-   :maxdepth: 6
+   :maxdepth: 4
 
-   apidoc/hbp_nrp_backend
+   apidoc/hbp_nrp_simserver

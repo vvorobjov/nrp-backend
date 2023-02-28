@@ -23,8 +23,8 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 # ---LICENSE-END
 """
-This module implements the Simulation server application.
-It is managed by a SimulationServerInstance.
+This module implements the Simulation Server application.
+It is managed by a :class:`.SimulationServerInstance`.
 """
 
 from __future__ import annotations
@@ -141,11 +141,11 @@ class SimulationServer:
     def initialize(self, except_hook=None):
         """
         Initialize the simulation server:
-        - parse and validate the experiment configuration file
-        - create the MQTT notifier
-        - create NRPScriptRunner
-        - create SimulationServerLifecycle
-        - start the status update timer
+            - parse and validate the experiment configuration file
+            - create the MQTT notifier
+            - create NRPScriptRunner
+            - create SimulationServerLifecycle
+            - start the status update timer
 
         If anything goes wrong, the relative exception will be re-raised
 
@@ -410,12 +410,12 @@ def _handle_shutdown(sim_server: SimulationServer,
     """
     A thread that takes care of shutting down the simulation server
     The process starts when terminate_event gets set by
-    the SIGTERM handler or after SimulationServer.run() termination.
+    the :code:`SIGTERM` handler or after :code:`SimulationServer.run()` termination.
 
     IF an error occurred while the simulation was running appends
-    simserver.ServerProcessExitCodes.RUNNING_ERROR to return_value.
-    If an error occurs during shutdown SHUTDOWN_ERROR is appended,
-    otherwise NO_ERROR.
+    :code:``simserver.ServerProcessExitCodes.RUNNING_ERROR` to return_value.
+    If an error occurs during shutdown :code:``SHUTDOWN_ERROR` is appended,
+    otherwise :code:``NO_ERROR`.
     """
     exit_codes = simserver.ServerProcessExitCodes
     sim_id = sim_server.simulation_settings.sim_id

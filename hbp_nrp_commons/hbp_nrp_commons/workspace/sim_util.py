@@ -120,8 +120,9 @@ class SimUtil:
     @staticmethod
     def delete_simulation_dir(sim_dir=None):
         """
-        Removes simulation directory
-        Check that you are deleting the right folder by checking the sim_id
+        Removes simulation directory.
+
+        Checks that you are deleting the right folder by checking the sim_id.
         """
         try:
             if os.path.exists(Settings.sim_dir_symlink):

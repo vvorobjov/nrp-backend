@@ -23,7 +23,13 @@
 # ---LICENSE-END
 
 """
-This module represents the configuration of a running simulation
+It holds the NRP backend configuration settings populated from the following list of environment vars:
+
+    - :code:`HBP`: The installation directory of the NRP.
+    - :code:`NRP_SIMULATION_DIR`: The local directory used by a running simulation (usually in /tmp)
+    - :code:`NRP_MQTT_BROKER_ADDRESS`: The :code:`host:port` of the MQTT broker
+    - :code:`STORAGE_ADDRESS` and :code:`STORAGE_PORT`: The :code:`host` and the :code:`port`, respectively, of the Storage Server.
+
 """
 import logging
 import os
@@ -35,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 class _Settings:
     """
-    Settings that are common on the backend process or machine
+    Settings that are common on the backend.
     This class is a Singleton (per process)
     """
 

@@ -88,8 +88,8 @@ class StorageClient:
 
         :param token: the authentication token
         :return: the user id
-        :raises: ValueError Could not verify auth token
-        :raises: ConnectionError
+        :raises ValueError: Could not verify auth token
+        :raises ConnectionError:
         """
 
         try:

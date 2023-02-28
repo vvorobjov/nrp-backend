@@ -1,6 +1,7 @@
 """
 This package contains the python code to run the REST server.
-TODO 
+
+It leverages the Flask REST and Flask-restful frameworks.
 
 """
 

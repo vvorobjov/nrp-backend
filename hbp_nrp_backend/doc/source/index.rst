@@ -13,7 +13,7 @@ Contents:
       :maxdepth: 1
       
       developer_manual
-
+      glossary
 
 
 .. note:: 

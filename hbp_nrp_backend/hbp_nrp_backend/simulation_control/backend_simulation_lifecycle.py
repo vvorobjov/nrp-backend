@@ -68,7 +68,7 @@ class BackendSimulationLifecycle(SimulationLifecycle):
 
         :param simulation: The simulation for which the simulation lifecycle is created
         """
-        super(BackendSimulationLifecycle, self).__init__(
+        super(self).__init__(
             simserver.TOPIC_LIFECYCLE(simulation.sim_id),
             initial_state=initial_state,
             mqtt_client_id="nrp_backend",

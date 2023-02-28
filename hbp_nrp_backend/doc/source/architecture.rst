@@ -6,5 +6,5 @@ Architecture
    :maxdepth: 2
 
    backend_architecture
-   .. backend_components
-   .. simulation_states
+   backend_components
+   simulation_states

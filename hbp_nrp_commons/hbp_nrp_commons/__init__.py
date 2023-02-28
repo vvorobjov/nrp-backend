@@ -15,13 +15,11 @@ __author__ = "NRP Team"
 def get_python_interpreter():
     """
         When started through uWSGI, sys.executable returns the uwsgi executable and not the python
-        interpreter (see https://github.com/unbit/uwsgi/issues/670 for details)
+        interpreter (see `here <https://github.com/unbit/uwsgi/issues/670>`_ for details).
     """
     python_interpreter = sys.executable
     if python_interpreter.endswith("uwsgi") \
             or python_interpreter.endswith("uwsgi-core"):  # pragma: no cover
-        # When started through uWSGI, sys.executable returns the uwsgi executable and not the python
-        # interpreter (see https://github.com/unbit/uwsgi/issues/670 for details)
         home = os.environ.get('NRP_MODULE_HOME')  # TODO  NRP_MODULE_HOME ? where to set it
         if home is not None:
             # If NRP_MODULE_HOME is set, we take the python interpreter from there
@@ -43,13 +41,13 @@ def set_up_logger(name: Optional[str] = None,
                   log_format:str = _log_format,
                   level: Union[int, str] = logging.INFO) -> logging.Logger:
     """
-    Configure the logger named 'name'.
-    If name is None, reutrn the root logger.
+    Configure the logger named :code:`name`.
+    If name is :code:`None`, return the root logger.
 
-    :param: name: The name of the logger to be set up. 
+    :param name: The name of the logger to be set up. 
                   None means root logger (same as logging.getLogger)
-    :param: logfile_name: name of the file created to collect logs. None means stdout.
-    :param: level: The logger level. Defaults to INFO.
+    :param logfile_name: name of the file created to collect logs. None means stdout.
+    :param level: The logger level. Defaults to INFO.
     
     :return: the logger with the specified name configured as required.
     """

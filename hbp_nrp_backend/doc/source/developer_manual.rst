@@ -8,7 +8,6 @@ NRP Backend developer's guide
 
     architecture
     REST-API
-    .. installation
-    .. running
-    .. tools
-    .. python_api
+    installation
+    running
+    python_api

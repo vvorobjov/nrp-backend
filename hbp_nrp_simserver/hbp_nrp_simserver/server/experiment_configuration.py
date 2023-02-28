@@ -33,7 +33,7 @@ def parse(exp_config_file_path: str) -> type_class:
     """
     Parse the json file at the specified path
     :return: An object-like representation of the json file.
-    :raises: ValueError: In case of any parsing error
+    :raises ValueError: In case of any parsing error
     """
     with open(exp_config_file_path) as exp_config_file:
         try:
@@ -48,7 +48,7 @@ def parse(exp_config_file_path: str) -> type_class:
 def validate(exp_config: type_class) -> type_class:
     """
     Validate and set default for exp_config
-    :raises: ValueError: when an invalid filed is found
+    :raises ValueError: when an invalid filed is found
     """
     # must have SimulationTimeout otherwise set default
     if not hasattr(exp_config, "SimulationTimeout"):

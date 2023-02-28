@@ -119,16 +119,16 @@ class MQTTNotifier:
     # TASK NOTIFIER
     def start_task(self, task_name, subtask_name, number_of_subtasks, block_ui=False):
         """
-        Sends a status notification that a task starts on the MQTT status topic.
+        Sends, on the MQTT status topic, a notification that a task is starting.
         This method will save the task name and the task size in class members so that
         it could be reused in subsequent call to the update_task method.
 
-        :param: task_name: Title of the task (example: initializing experiment).
-        :param: subtask_name: Title of the first subtask. Could be empty
+        :param task_name: Title of the task (example: initializing experiment).
+        :param subtask_name: Title of the first subtask. Could be empty
                 (example: 'loading...').
-        :param: number_of_subtasks: Number of expected subsequent calls to
+        :param number_of_subtasks: Number of expected subsequent calls to
                 update_current_task(_, True, _).
-        :param: block_ui: Indicate that the client should block any user interaction.
+        :param block_ui: Indicate that the client should block any user interaction.
         """
         if self.__current_task is not None:
             logger.warning(
@@ -149,11 +149,11 @@ class MQTTNotifier:
         """
         Sends a status notification that the current task is updated with a new subtask.
 
-        :param: subtask_name: Title of the first subtask. Could be empty
+        :param subtask_name: Title of the first subtask. Could be empty
                 (example: 'Loading Foo...').
-        :param: update_progress: Boolean indicating if the index of the current subtask
+        :param update_progress: Boolean indicating if the index of the current subtask
                 should be updated (usually yes).
-        :param: block_ui: Indicate that the client should block any user interaction.
+        :param block_ui: Indicate that the client should block any user interaction.
         """
         if self.__current_task is None:
             logger.warning("Can't update a non existing task.")

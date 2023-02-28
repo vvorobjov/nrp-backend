@@ -98,8 +98,9 @@ class SimulationServerInstance:
         """
         Initialize the simulation server:
 
-        Run simulation_server.py in a subprocess, spawning a thread monitoring its execution.
-        The stdout of the child process is redirected to a file named simulation_{self.sim_id}.log
+        Run :code:`simulation_server.py` in a subprocess, spawning a thread that monitors its execution.
+        The stdout of the child process is redirected to a file named :code:`simulation_{self.sim_id}.log`
+
         """
         if self.is_running:
             raise Exception("Simulation is already initialized.")
@@ -149,7 +150,7 @@ class SimulationServerInstance:
 
     def shutdown(self) -> None:
         """
-        Shuts down this simulation
+        Shuts down this simulation.
         """
 
         if not self.is_running:
@@ -216,13 +217,13 @@ class SimulationServerInstance:
         Perform termination and block until the simulation server process has finished.
 
         Termination protocol is:
-        - termination request -> send SIGTERM
-        - kill the process -> send SIGKILL
+            - termination request -> send SIGTERM
+            - kill the process -> send SIGKILL
 
         After any request the simulation process is waited on for timeout seconds
         before escalating.
 
-        :param: timeout: Maximum waiting time in seconds
+        :param timeout: Maximum waiting time in seconds
         """
 
         if not self.is_running:
