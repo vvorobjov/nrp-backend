@@ -45,8 +45,8 @@ Synchronization of multiple life-cycles
 
 The state machine allows multiple distributed instances of itself over multiple processes or hosts, each 
 having different implementations of the transition functions. 
-These instances are automatically kept in synch using an MQTT topic.
-This means, when one instance of the lifecycle state machine changes its state, all other instances are notified via a message sent on this MQTT topic.
+These instances are automatically kept in synch using an :term:`MQTT` topic.
+This means, when one instance of the lifecycle state machine changes its state, all other instances are notified via a message sent on this :term:`MQTT` topic.
 
 Any other instance will receive it and synchronize automatically, but it will not propagate this synchronized change any further in order to avoid endless loops.
 

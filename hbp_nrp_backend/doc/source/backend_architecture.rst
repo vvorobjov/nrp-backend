@@ -6,9 +6,9 @@ Purpose
 -------
 
 The :term:`NRP` Backend is responsible for providing a :ref:`backend-rest-api` to launch and control simulated experiments.
-Such experiments leverage the nrp-core framework for orchestrating and synchronize different simulators (see TODO LINK).
+Such experiments leverage the :ref:`doxid-indexpage` framework for orchestrating and synchronize different simulators.
 
-Experiments are run by executing user-defined python scripts (usually named :code:`main_script.py`) using nrp-core python client (TODO link) to advance the simulation.
+Experiments are run by executing user-defined python scripts (usually named :code:`main_script.py`) using nrp-core :ref:`python client <doxid-python_client>` to advance the simulation.
 
 Using the REST API provided by NRP Backend, the user can request an experiment to be:
 
@@ -35,7 +35,7 @@ The :code:`Storage Client` access the storage, where the experiment's data are k
 
 The :code:`Simulation Server` manages the execution of the experiment's :code:`main_script.py` that drives :code:`nrp-core`'s simulation via its python client.
 
-A MQTT broker is used to send runtime information (e.g. status of the simulation, errors) to the Frontend and to exchange messages between backend's internal components.
+A :term:`MQTT` broker is used to send runtime information (e.g. status of the simulation, errors) to the Frontend and to exchange messages between backend's internal components (i.e. :ref:`rest-server` and :ref:`simulation-server`).
 
 Details on the REST API can be found here: :doc:`REST-API`.
 

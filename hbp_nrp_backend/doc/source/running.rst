@@ -6,15 +6,11 @@ Running the Backend
 Running on a local machine
 --------------------------
 
-This is a step-by-step description for running the backend for the case that **the backend is locally installed on developer a machine**.
+This is a step-by-step description for running the backend in the case of **the backend be installed locally on developer a machine**.
 
-.. TODO ref to installation from source
+1. Make sure you installed everything according to :ref:`installation`.
 
-1. Make sure you installed everything according to :ref:`installation`. The following 
-
-.. TODO ref to installation from source
-
-2. Start the required component (i.e. the :code:`MQTT Broker` and the :code:`Storage Proxy`) refer to:  
+2. Start the required component (i.e. the :term:`MQTT` :code:`Broker` and the :code:`Storage Proxy`) refer to:
 
    a. Start the backend server:
 

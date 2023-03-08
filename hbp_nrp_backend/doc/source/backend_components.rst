@@ -29,7 +29,7 @@ Another responsibility is, once having prepared the execution environment, to sp
 The sequence diagram :numref:`launch-experiment-backend`, depicts such processes.
 
 In the REST Server, the lifecycle of an experiment simulation is governed by an instance of :code:`SimulationLifecycle`; in particular, by its specialization  :code:`BackendSimulationLifecycle`.
-For details see the relative section (:ref:`life-cycles`) of this manual.
+For details see the :ref:`relative <life-cycles>` section of this manual.
 
 .. _simulation-server:
 
@@ -40,7 +40,7 @@ The purpose of the Simulation Server is to run nrp-core based python scripts fro
 When the launching of an experiment is requested, it gets spawned, as sub process, by the :ref:`rest-server`.
 It, then, loads and executes the experiment script (e.g. main_script.py) until completion or user request of stopping it. While running, the execution can be paused.
 
-.. note:: The Simulation Sever can pause and stop the execution of nrp-core based python script; i.e. python scripts with the following structure. It is required to use the function :code:`nrp.run_loop` to loop over simulation timesteps or until the exception :code:`NRPSimulationTimeout` is raised.
+.. note:: The :ref:`simulation-server` can pause and stop the execution of nrp-core based python script; i.e. python scripts with the following structure. It is required to use the function :code:`nrp.run_loop` to loop over simulation timesteps or until the exception :code:`NRPSimulationTimeout` is raised.
 
 .. literalinclude:: img/main_script.py
    :linenos:
@@ -58,5 +58,5 @@ The sequence diagram in :numref:`launch-experiment-simserver`, depicts the proce
 
    Experiment launching (Sim Server)
 
-The lifecycle a Simulation Server is governed by an instance of :code:`SimulationLifecycle`, in particular by its specialization :code:`SimulationServerLifecycle`.
-For details see the relative section of this manual.
+The lifecycle of a :ref:`simulation-server` is governed by an instance of :code:`SimulationLifecycle`, in particular by its specialization :code:`SimulationServerLifecycle`.
+For details see the :ref:`relative <life-cycles>` section of this manual.

@@ -26,7 +26,7 @@ This is package contains the Simulation server.
 It runs user-defined python scripts that use an nrp_core.client.NRPCore.
 
 A simulation server can be managed by an instance of SimulationServerInstance and once initialized it sends,
-on MQTT topics, information about its status (/status) and, on error, a message describing such error (/runtime_error).
+on :term:`MQTT` topics, information about its status (:code:`/status`) and, on error, a message describing such error (:code:`/runtime_error`).
 
 The runtime state of the server is controlled via an instance of SimulationLifecycle that reacts to 
 state changes initiated by the user via the REST API exposed by hbp_nrp_backend.server.
