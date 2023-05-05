@@ -65,10 +65,7 @@ pipeline {
                 echo sh(script: 'env|sort', returnStdout: true)
 
                 // Checkout main project to GIT_CHECKOUT_DIR
-                dir(env.GIT_CHECKOUT_DIR) {
-                    checkout scm
-                    sh 'chown -R "${USER}" ./'
-                }
+                cloneSCM(env.GIT_CHECKOUT_DIR)
 
                 // Clone all dependencies
                 // cloneRepoTopic: 

@@ -1,7 +1,6 @@
 """setup.py"""
 from builtins import next
 
-import pip
 from setuptools import setup
 
 import hbp_nrp_backend
@@ -9,13 +8,6 @@ import hbp_nrp_backend
 reqs_file = './requirements.txt'
 
 reqs = list(val.strip() for val in open(reqs_file))
-
-try:
-    cython_req = next(r for r in reqs if r.startswith('cython'))
-    numpy_req = next(r for r in reqs if r.startswith('numpy'))
-    pip.main(['install', '--no-clean', cython_req, numpy_req])  # pylint:disable=no-member
-except Exception:  # pylint: disable=broad-except
-    pass
 
 config = {
     'description': 'REST Backend for nrp-core',
