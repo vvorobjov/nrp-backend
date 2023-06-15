@@ -14,3 +14,5 @@ docker
 grpcio-tools
 pytest
 psutil
+python-on-whales
+pyyaml
