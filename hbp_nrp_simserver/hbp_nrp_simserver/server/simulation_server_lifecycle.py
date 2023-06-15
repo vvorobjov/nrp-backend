@@ -70,7 +70,8 @@ class SimulationServerLifecycle(simulation_lifecycle.SimulationLifecycle):
 
         super().__init__(simserver.TOPIC_LIFECYCLE(sim_server.simulation_id),
                          propagated_destinations=SimulationServerLifecycle.propagated_destinations,
-                         mqtt_client_id=self.DEFAULT_MQTT_CLIENT_ID)
+                         mqtt_client_id=self.DEFAULT_MQTT_CLIENT_ID,
+                         mqtt_topics_prefix=sim_server.mqtt_topics_prefix)
 
 
         self.__except_hook = except_hook or logger.exception

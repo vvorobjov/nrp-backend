@@ -59,7 +59,7 @@ class TestSimulationServerLifecycle(unittest.TestCase):
         self.threading_event_mock = patcher_threading_event.start()
         self.addCleanup(patcher_threading_event.stop)
 
-        self.sim_server_mock = MagicMock(simulation_id=42)
+        self.sim_server_mock = MagicMock(simulation_id=42, mqtt_topics_prefix="")
         self.ssl = SimulationServerLifecycle(self.sim_server_mock)
 
     def test_init_invalid_args(self):

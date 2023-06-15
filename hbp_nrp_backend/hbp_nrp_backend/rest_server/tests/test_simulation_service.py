@@ -31,7 +31,6 @@ __author__ = 'NRP software team, Georg Hinkel, Ugo Albanese'
 import unittest
 import json
 import datetime
-import time
 from hbp_nrp_backend.rest_server import ErrorMessages
 from hbp_nrp_backend.rest_server.__SimulationService import SimulationService
 import unittest
@@ -50,7 +49,7 @@ class TestSimulationService(RestTest):
         self.now = datetime.datetime.now()
 
         # patch state property of simulation.Simulation
-        # can't use PropertyMock since we need to control __set__ and __get__ independently
+        # can't use PropertyMock in case we need to control __set__ and __get__ independently
         self.patcher_state = mock.patch(
             'hbp_nrp_backend.simulation_control.simulation.Simulation.state', new_callable=mock.PropertyMock)
         self.mock_state = self.patcher_state.start()
@@ -168,7 +167,8 @@ class TestSimulationService(RestTest):
             'creationDate': self.now.isoformat(),
             'owner': 'default-owner',
             'experimentID': "my_cloned_experiment",
-            'ctxId': None
+            'ctxId': None,
+            'MQTTPrefix': ""
         }
 
         self.assertDictEqual(

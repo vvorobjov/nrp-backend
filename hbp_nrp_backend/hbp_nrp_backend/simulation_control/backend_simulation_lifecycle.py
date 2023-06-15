@@ -72,6 +72,7 @@ class BackendSimulationLifecycle(SimulationLifecycle):
             simserver.TOPIC_LIFECYCLE(simulation.sim_id),
             initial_state=initial_state,
             mqtt_client_id="nrp_backend",
+            mqtt_topics_prefix = simulation.mqtt_topics_prefix,
             propagated_destinations=BackendSimulationLifecycle.propagated_destinations,
             clear_synchronization_topic=True)
 

@@ -144,10 +144,12 @@ class TestSimulationServer(unittest.TestCase):
     # initialize
     def test_initialize(self):
         self.settings_mock.is_mqtt_broker_default = True
+        self.settings_mock.mqtt_topics_prefix = "prefix"
         self.exp_conf_utils_mock.mqtt_broker_host_port.return_value = ("localhost", 1883)
 
         self.sim_server.initialize(mock.sentinel.except_hook)
 
+        self.assertEqual(self.sim_server.mqtt_topics_prefix, "prefix")
         self.exp_conf_utils_mock.mqtt_broker_host_port.assert_called_with(
             self.exp_conf_utils_mock.validate.return_value)
         self.notifier_mock.assert_called_once()

@@ -47,8 +47,12 @@ class _Settings:
 
     __instance = None
 
+    # The defaults address and port of the MQTT broker
     DEFAULT_MQTT_BROKER_HOST = "localhost"
     DEFAULT_MQTT_BROKER_PORT = 1883
+
+    # The defaults prefix used to scope MQTT topics
+    DEFAULT_MQTT_TOPICS_PREFIX = ""
 
     DEFAULT_STORAGE_HOST = "localhost"
     DEFAULT_STORAGE_PORT = 9000
@@ -56,6 +60,7 @@ class _Settings:
     env_vars_name = {'ROOT_DIR': 'HBP',  # NRP home directory
                      'SIMULATION_DIR': 'NRP_SIMULATION_DIR',  # NRP simulation directory (in /tmp)
                      'MQTT_BROKER': "NRP_MQTT_BROKER_ADDRESS",
+                     'MQTT_TOPICS_PREFIX': "NRP_MQTT_PREFIX",
                      'STORAGE_ADDRESS': 'STORAGE_ADDRESS',
                      'STORAGE_PORT': 'STORAGE_PORT'}
 
@@ -99,6 +104,9 @@ class _Settings:
             self.mqtt_broker_host: str = _Settings.DEFAULT_MQTT_BROKER_HOST
             self.mqtt_broker_port: int = _Settings.DEFAULT_MQTT_BROKER_PORT
             self.is_mqtt_broker_default: bool = True
+
+        # The prefix used to scope MQTT topics, defaults to empty string
+        self.mqtt_topics_prefix = os.environ.get(self.env_vars_name['MQTT_TOPICS_PREFIX'], self.DEFAULT_MQTT_TOPICS_PREFIX)
 
         # TODO do as for MQTT (i.e. address = host:port), rename to NRP_STORAGE_ADDRESS
         storage_address = os.environ.get(self.env_vars_name['STORAGE_ADDRESS'],

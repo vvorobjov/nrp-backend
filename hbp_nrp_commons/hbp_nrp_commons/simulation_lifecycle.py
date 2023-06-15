@@ -47,7 +47,8 @@ logging.getLogger("transitions").setLevel(logger.getEffectiveLevel() + 10)
 
 class SimulationLifecycle:
     """
-    Defines the lifecycle of a simulation in terms of state machine defined using the `pytransitions <https://github.com/pytransitions/transitions>`_ package.
+    Defines the lifecycle of a simulation in terms of state machine defined using the
+    `pytransitions <https://github.com/pytransitions/transitions>`_ package.
 
     A Simulation is created in the :code:`created` initial state; the :code:`initialized` trigger makes it transition to :code:`paused`.
     The :code:`started` trigger makes it move to :code:`started` state, 
@@ -233,6 +234,7 @@ class SimulationLifecycle:
                  mqtt_client_id: Optional[str] = None,
                  mqtt_broker_host: str = Settings.mqtt_broker_host,
                  mqtt_broker_port: int = Settings.mqtt_broker_port,
+                 mqtt_topics_prefix: str = Settings.mqtt_topics_prefix,
                  clear_synchronization_topic=False):
         """
         Creates a new synchronization lifecycle for the given topic
@@ -243,6 +245,7 @@ class SimulationLifecycle:
         :param mqtt_client_id: the MQTT Client ID of this lifecycle
         :param mqtt_broker_host: the host where to find the MQTT broker
         :param mqtt_broker_port: the port, on mqtt_broker_host, at which the MQTT broker is available
+        :param mqtt_prefix: The prefix used to scope MQTT topics
         :param clear_synchronization_topic: Whether to clean on connect the synchronization topic of retained messages
 
         """
@@ -250,10 +253,16 @@ class SimulationLifecycle:
         propagated_destinations = propagated_destinations \
             if propagated_destinations is not None else SimulationLifecycle.STATES
         
+        # mqtt
+        self.mqtt_client_id = mqtt_client_id
+        self.mqtt_broker_host = mqtt_broker_host
+        self.mqtt_broker_port = mqtt_broker_port
+        self.mqtt_topics_prefix = mqtt_topics_prefix
+        
         # states for which change events should NOT be propagated to other lifecycles
         self._silent_destinations = frozenset(self.STATES) - frozenset(propagated_destinations)
 
-        self.synchronization_topic = synchronization_topic
+        self.synchronization_topic = f"{self.mqtt_topics_prefix}/{synchronization_topic}" if self.mqtt_topics_prefix else synchronization_topic
         self.clear_synchronization_topic = clear_synchronization_topic
 
         # Transitions adds some members based on the STATES and transitions
@@ -290,10 +299,7 @@ class SimulationLifecycle:
                              before='stop')
         # TODO reset support
 
-        # mqtt
-        self.mqtt_client_id = mqtt_client_id
-        self.mqtt_broker_host = mqtt_broker_host
-        self.mqtt_broker_port = mqtt_broker_port
+
 
         # NOTE MQTTv5 requires clean_start=True parameter to connect
         # instead of clean_session=True here

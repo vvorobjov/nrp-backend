@@ -41,7 +41,7 @@ import hbp_nrp_simserver.server.simulation_server_instance as simserver
 from . import timezone
 from . import sim_id_type
 from .backend_simulation_lifecycle import BackendSimulationLifecycle
-
+from hbp_nrp_commons.workspace.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +82,7 @@ class Simulation:
         """
 
         # NOTE
-        # Add more fields with any other simulation-related info that the frontend might need.
+        # Add more fields for any other simulation-related info that the frontend might need.
         # (e.g. URLs of backend-created resources/services)
         # Add them to resource_fields too
 
@@ -97,6 +97,12 @@ class Simulation:
         self.__private = private
         self.__token = token
         self.__ctx_id = ctx_id
+        
+        # use mqtt_topics_prefix specified in workspace.Settings via Env Var.
+        #
+        # NOTE Currently, it's the same for every simulation of this backend.
+        # It could be changed, in case the need arises: just use the value passed as argument.
+        self.__mqtt_topics_prefix = Settings.mqtt_topics_prefix
 
         # simulation_server created during initialization in Lifecycle
         self.__simulation_server_instance: Optional[simserver.SimulationServerInstance] = None
@@ -232,6 +238,15 @@ class Simulation:
         """
         self.__lifecycle.accept_command(new_state)
 
+    @property
+    def mqtt_topics_prefix(self) -> str:
+        """
+        Gets the prefix to any MQTT topic name of this simulation
+
+        :return: the prefix to any MQTT topic name of this simulation
+        """
+        return self.__mqtt_topics_prefix
+
 
     # for use with marshal or marshal_with
     resource_fields = {
@@ -242,7 +257,8 @@ class Simulation:
         'owner': fields.String(attribute='owner'),
         'creationDate': fields.String(attribute=lambda x: x.creation_date),
         'experimentID': fields.String(attribute='experiment_id'),
-        'ctxId': fields.String(attribute='ctx_id')
+        'ctxId': fields.String(attribute='ctx_id'),
+        'MQTTPrefix': fields.String(attribute='mqtt_topics_prefix'),
     }
 
     required = ['state',

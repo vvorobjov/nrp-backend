@@ -53,6 +53,7 @@ class TestBackendSimulationLifecycle(unittest.TestCase):
         t.experiment_id = PropertyMock(return_value="some_exp_id"),
         t.main_script = PropertyMock(return_value="main_script.py"),
         t.private = PropertyMock(return_value=True)
+        t.mqtt_topics_prefix = PropertyMock(return_value="")
 
         # mock SimulationServerInstance
         self.patcher_simserver_instance = patch(f'{_base_path}.SimulationServerInstance')
@@ -136,7 +137,7 @@ class TestBackendSimulationLifecycle(unittest.TestCase):
 
         self.lifecycle.stop(MagicMock())
         self.assertFalse(self.sim_util_mock.delete_simulation_dir.called)
-    
+
     @patch(f"{_base_path}.glob")
     def test_backend_stop(self, glob_mock):
         glob_mock.glob.return_value = ["file.log"]
@@ -154,7 +155,6 @@ class TestBackendSimulationLifecycle(unittest.TestCase):
         
         # finally
         self.assertTrue(self.sim_util_mock.delete_simulation_dir.called)
-
 
     def test_backend_stop_shutdown_fail(self):
         # should clean sim_dir up even when shutdown fails

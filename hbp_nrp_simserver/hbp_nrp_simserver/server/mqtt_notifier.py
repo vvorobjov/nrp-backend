@@ -37,9 +37,13 @@ from . import TOPIC_STATUS, TOPIC_ERROR
 logger = logging.getLogger(__name__)
 
 DEFAULT_MQTT_CLIENT_ID = "mqtt_notifier"
-DEFAULT_MQTT_HOST = "localhost"
-DEFAULT_MQTT_PORT = 1883
 
+# The defaults address and port of the MQTT broker
+DEFAULT_MQTT_BROKER_HOST = "localhost"
+DEFAULT_MQTT_BROKER_PORT = 1883
+
+# The defaults prefix used to scope MQTT topics
+DEFAULT_MQTT_PREFIX = ""
 
 class MQTTNotifier:
     """
@@ -47,23 +51,30 @@ class MQTTNotifier:
     """
     def __init__(self,
                  sim_id: int,
-                 broker_hostname: str = DEFAULT_MQTT_HOST, broker_port: int = DEFAULT_MQTT_PORT,
+                 broker_hostname: str = DEFAULT_MQTT_BROKER_HOST, broker_port: int = DEFAULT_MQTT_BROKER_PORT,
+                 topics_prefix: str = DEFAULT_MQTT_PREFIX,
                  client_id: str = DEFAULT_MQTT_CLIENT_ID):
 
         self.sim_id = sim_id
         self.mqtt_broker_hostname = broker_hostname
         self.mqtt_broker_port = broker_port
-        self.mqtt_client_id = client_id
+        self.mqtt_prefix = topics_prefix
 
+        self.mqtt_client_id = client_id
+        
         self.status_topic = TOPIC_STATUS(self.sim_id)
         self.error_topic = TOPIC_ERROR(self.sim_id)
 
+        if self.mqtt_prefix:
+            self.status_topic = f"{self.mqtt_prefix}/{self.status_topic}"
+            self.error_topic = f"{self.mqtt_prefix}/{self.error_topic}"
+
         # task specific bookkeeping
         self.__current_task: Optional[str] = None
-        self.__current_subtask_count = 0
-        self.__current_subtask_index = 0
+        self.__current_subtask_count: int = 0
+        self.__current_subtask_index: int = 0
 
-        # NOTE MQTTv5 reqires clean_start=True parameter to connect
+        # NOTE MQTTv5 requires clean_start=True parameter to connect
         # instead of clean_session=True here
         self.__mqtt_client: Optional[mqtt.Client] = mqtt.Client(self.mqtt_client_id,
                                                                 clean_session=True)

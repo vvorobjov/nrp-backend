@@ -83,7 +83,7 @@ class TestLifecycle(unittest.TestCase):
     def receive_state_change(self, origin, source_state, transition, target_state):
 
         msg: str = self.make_transition_message(origin, source_state, transition, target_state)
-        
+
         # self.__mqtt_client.message_callback_add(synchronization_topic, self.__synchronized_lifecycle_changed)
         _topic, msg_callback = self.mqtt_client_mock.return_value.message_callback_add.call_args[0]
 
@@ -92,7 +92,17 @@ class TestLifecycle(unittest.TestCase):
 
     def assert_publisher_called_with(self, topic, payload, retain=False):
         self.publish_mock.assert_has_calls([ mock.call( topic=topic, payload=payload, retain=retain) ])
+
+    def test_prefixed_synchronization_topic(self):
+        mqtt_topics_prefix = "prefix"
+        synchronization_topic = "simulationLifecycle_topic"
+        lifecycle = MockLifecycle(synchronization_topic=synchronization_topic,
+                                  mqtt_client_id="my_id",
+                                  mqtt_topics_prefix = "prefix")
     
+        self.assertIn(lifecycle.synchronization_topic, f"{mqtt_topics_prefix}/{synchronization_topic}")
+
+
     def test_init_mqtt(self):
         lifecycle = MockLifecycle(synchronization_topic="simulationLifecycle_topic",
                                   mqtt_client_id="my_id")

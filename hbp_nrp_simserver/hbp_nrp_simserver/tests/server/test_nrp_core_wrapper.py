@@ -56,6 +56,7 @@ class TestNrpCoreWrapper(unittest.TestCase):
         self.settings_mock.is_mqtt_broker_default = False
         self.settings_mock.mqtt_broker_host = "locahost_mock"
         self.settings_mock.mqtt_broker_port = "4242"
+        self.settings_mock.mqtt_topics_prefix = ""
         self.addCleanup(settings_patcher.stop)
 
         # logger
@@ -93,6 +94,20 @@ class TestNrpCoreWrapper(unittest.TestCase):
         self.nrp_core_class_mock.assert_called_with(NrpCoreWrapper.NRP_CORE_DEFAULT_ADDRESS_PORT,
                                                     config_file=self.exp_config_file,
                                                     args=args)
+
+    def test_init_topics_prefix(self):
+
+        self.settings_mock.mqtt_topics_prefix = "mqtt_prefix"
+
+        self.nrp_core_wrapper = NrpCoreWrapper(self.nrp_core_class_mock,
+                                               sim_id="42",
+                                               exp_config_file=self.exp_config_file,
+                                               exp_config=self.exp_config_mock,
+                                               paused_event=self.paused_event_mock,
+                                               stopped_event=self.stopped_event_mock)
+
+        mqtt_prefix_arg = '-o EngineConfigs.3.MQTTPrefix=mqtt_prefix'
+        self.assertIn(mqtt_prefix_arg, self.nrp_core_class_mock.call_args.kwargs["args"])
 
     # stop, reset, shutdown, initialize
     def test_not_implemented(self):
@@ -132,7 +147,7 @@ class TestNrpCoreWrapper(unittest.TestCase):
 
         self.paused_event_mock.wait.assert_called()
 
-    def test_run_loop_exeption(self):
+    def test_run_loop_exception(self):
         for p in ["real_time"]:
             self.property_patchers[p].stop()
 

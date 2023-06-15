@@ -50,9 +50,16 @@ class TestMQTTNotifier(unittest.TestCase):
                          mqtt_notifier.DEFAULT_MQTT_CLIENT_ID)
         self.mqtt_client_class_mock.assert_called_with(mqtt_notifier.DEFAULT_MQTT_CLIENT_ID,
                                                        clean_session=True)
-        self.mqtt_client_mock.connect.assert_called_with(host=mqtt_notifier.DEFAULT_MQTT_HOST,
-                                                         port=mqtt_notifier.DEFAULT_MQTT_PORT)
+        self.mqtt_client_mock.connect.assert_called_with(host=mqtt_notifier.DEFAULT_MQTT_BROKER_HOST,
+                                                         port=mqtt_notifier.DEFAULT_MQTT_BROKER_PORT)
         self.mqtt_client_mock.loop_start.assert_called()
+
+    def test_init_topics_prefix(self):
+        for prefix in ["", "a_prefix"]:
+            mqtt_notifier = MQTTNotifier(sim_id=self.sim_id, topics_prefix=prefix)
+
+            self.assertTrue(mqtt_notifier.status_topic.startswith(prefix))
+            self.assertTrue(mqtt_notifier.error_topic.startswith(prefix))
 
     def test_shutdown(self):
         self.__mqtt_notifier.shutdown()
@@ -70,7 +77,7 @@ class TestMQTTNotifier(unittest.TestCase):
         self.__mqtt_notifier.publish_error('bar')
         self.mqtt_client_mock.publish.assert_called_once_with(self.__mqtt_notifier.error_topic,
                                                               'bar')
-
+    
     def test_task(self):
         self.__mqtt_notifier.start_task('task', 'subtask', 1, False)
         self.assertEqual(self.mqtt_client_publish_mock.call_count, 1)

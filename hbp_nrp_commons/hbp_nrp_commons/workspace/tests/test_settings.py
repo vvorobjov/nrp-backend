@@ -53,6 +53,7 @@ class TestSimConfig(unittest.TestCase):
             'HBP': '/hbp/dir',
             'NRP_SIMULATION_DIR': '/sim/dir',
             'NRP_MQTT_BROKER_ADDRESS' : "mqtt:6000",
+            'NRP_MQTT_PREFIX' : "mqtt_prefix",
             "STORAGE_ADDRESS": "localhost",
             "STORAGE_PORT": 99
         }
@@ -71,6 +72,7 @@ class TestSimConfig(unittest.TestCase):
         self.assertEqual(settings.mqtt_broker_host, 'mqtt')
         self.assertEqual(settings.mqtt_broker_port, 6000)
         self.assertFalse(settings.is_mqtt_broker_default)
+        self.assertEqual(settings.mqtt_topics_prefix, "mqtt_prefix")
 
         self.assertEqual("http://localhost:99/storage", settings.storage_uri)
     
@@ -94,6 +96,13 @@ class TestSimConfig(unittest.TestCase):
 
             #Clear the Singleton instance (if exists), and force a new copy
             _Settings._Settings__instance = None
+
+    def test_no_mqtt_prefix(self):
+        del self.os_mock.environ["NRP_MQTT_PREFIX"]
+
+        settings = _Settings()
+        self.assertEqual(settings.mqtt_topics_prefix, "")
+
 
 if __name__ == '__main__':
     unittest.main()

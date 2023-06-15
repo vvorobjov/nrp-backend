@@ -162,11 +162,13 @@ class SimulationServer:
         else:
             broker_host, broker_port = exp_conf_utils.mqtt_broker_host_port(self.exp_config)
 
+        self.mqtt_topics_prefix = Settings.mqtt_topics_prefix
 
         logger.debug("Setting up simulation Notifier")
         self._notifier = MQTTNotifier(int(self.simulation_id),
-                                            broker_hostname=broker_host,
-                                            broker_port=int(broker_port))
+                                      broker_hostname=broker_host,
+                                      broker_port=int(broker_port),
+                                      topics_prefix=Settings.mqtt_topics_prefix)
 
         try:
             logger.debug("Setting up a NRPScriptRunner")
