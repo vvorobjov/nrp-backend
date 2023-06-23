@@ -48,7 +48,7 @@ __author__ = 'NRP software team, Ugo Albanese'
 
 logger = logging.getLogger(__name__)
 
-NRP_CORE_MODULES_NAMES = ["nrp_core, nrp_core.client"]
+NRP_CORE_MODULES_NAMES = ["nrp_core, nrp_client"]
 
 # maximum waiting time in secs for the joining of the main user script thread
 MAX_STOP_TIMEOUT: float = 20.

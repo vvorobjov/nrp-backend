@@ -46,7 +46,7 @@ It, then, loads and executes the experiment script (e.g. main_script.py) until c
    :linenos:
    :name: main_script.py
 
-The execution can be controlled because any programmatic interaction with nrp-core python client (i.e. :code:`nrp_core.client.NrpCore`) is mediated by the class :code:`NRPCoreWrapper`.
+The execution can be controlled because any programmatic interaction with nrp-core python client (i.e. :code:`nrp_client`) is mediated by the class :code:`NRPCoreWrapper`.
 This class wraps an instance of :code:`NrpCore` intercepting any call and, before forwarding the call to the wrapped instance, it performs all the required management tasks (e.g. time keeping, checking whether pause or stop has been requested).
 
 The sequence diagram in :numref:`launch-experiment-simserver`, depicts the process of launching an experiment. It is the continuation of :numref:`launch-experiment-backend`.

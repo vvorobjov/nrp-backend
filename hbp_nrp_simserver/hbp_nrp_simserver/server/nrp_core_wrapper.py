@@ -65,7 +65,7 @@ class NrpCoreWrapper:
         self.__timesteps_count: int = 0
 
         # Track real time as follows
-        # right before nrp_core.client run_loop is run, start_time is set to the current clock time.
+        # right before nrp_client run_loop is run, start_time is set to the current clock time.
         # When it's completed, elapsed_time is incremented by (stop_time - start_time).
         # Thus, the real time is:
         # - elapsed_time when paused
@@ -157,7 +157,7 @@ class NrpCoreWrapper:
         In the case such number of iterations will result in the timeout being reached,
         an NRPSimulationTimeout exception will be raised; the simulation won't be advanced.
 
-        See nrp_core.client.NrpCore.run_loop for further details.
+        See nrp_client.NrpCore.run_loop for further details.
 
         :raises NRPSimulationTimeout: if running for num_iterations will exceed the configured
                  simulation timeout (i.e. curr_timestep + num_iterations > max_timestep)

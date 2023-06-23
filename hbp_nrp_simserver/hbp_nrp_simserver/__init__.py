@@ -1,5 +1,5 @@
 """
-This package contains a server to run nrp_core.client-based scripts
+This package contains a server to run nrp_client-based scripts
 """
 from .version import VERSION as __version__  # pylint: disable=W0611
 

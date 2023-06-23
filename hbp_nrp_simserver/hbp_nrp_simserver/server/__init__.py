@@ -23,7 +23,7 @@
 # ---LICENSE-END
 """
 This is package contains the Simulation server.
-It runs user-defined python scripts that use an nrp_core.client.NRPCore.
+It runs user-defined python scripts that use an nrp_client.NRPCore.
 
 A simulation server can be managed by an instance of SimulationServerInstance and once initialized it sends,
 on :term:`MQTT` topics, information about its status (:code:`/status`) and, on error, a message describing such error (:code:`/runtime_error`).
@@ -45,7 +45,7 @@ import pytz
 timezone = pytz.timezone('Europe/Zurich')
 
 # import nrp_core python client class client
-from nrp_core.client import NrpCore as NrpCoreClientClass  # nrp-core python client
+from nrp_client import NrpCore as NrpCoreClientClass  # nrp-core python client
 
 MQTT_SIMSERVER_TOPIC_PREFIX = 'nrp_simulation'
 

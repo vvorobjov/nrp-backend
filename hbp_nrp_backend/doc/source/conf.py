@@ -68,6 +68,6 @@ texinfo_documents = [
 autodoc_mock_imports = ['nrp_core']
 
 # Mock for autoflask
-MOCK_MODULES = ['nrp_core', 'nrp_core.client']
+MOCK_MODULES = ['nrp_core', 'nrp_client']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = mock.Mock()

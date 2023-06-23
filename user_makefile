@@ -230,7 +230,7 @@ $(PLATFORM_VENV)/bin/activate:
 
 #need new version of pip for our setup.py methods
 $(PLATFORM_VENV)/new-pip.txt: $(PLATFORM_VENV)/bin/activate
-	$(PIP) install $(PIPPROXY) --upgrade $(PYTHON_PIP_VERSION)
+	$(PIP) install $(PIPPROXY) --upgrade '$(PYTHON_PIP_VERSION)'
 	$(PIP) install $(PIPPROXY) '$(SETUPTOOLS_VERSION)'
 	touch $(PLATFORM_VENV)/new-pip.txt
 
