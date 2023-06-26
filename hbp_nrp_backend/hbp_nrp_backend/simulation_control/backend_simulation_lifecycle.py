@@ -55,6 +55,7 @@ class BackendSimulationLifecycle(SimulationLifecycle):
     """
     This class implements the backend simulation lifecycle
     """
+    DEFAULT_MQTT_CLIENT_ID = "nrp_backend"
 
     # Backend should only state change towards these states.
     # In fact, Backend can't make a simulation fail.
@@ -71,7 +72,7 @@ class BackendSimulationLifecycle(SimulationLifecycle):
         super(BackendSimulationLifecycle, self).__init__(
             simserver.TOPIC_LIFECYCLE(simulation.sim_id),
             initial_state=initial_state,
-            mqtt_client_id="nrp_backend",
+            mqtt_client_id=self.DEFAULT_MQTT_CLIENT_ID,
             mqtt_topics_prefix = simulation.mqtt_topics_prefix,
             propagated_destinations=BackendSimulationLifecycle.propagated_destinations,
             clear_synchronization_topic=True)

@@ -32,42 +32,42 @@ from typing import Optional
 
 import paho.mqtt.client as mqtt
 
+from hbp_nrp_commons.workspace.settings import Settings
+
 from . import TOPIC_STATUS, TOPIC_ERROR
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_MQTT_CLIENT_ID = "mqtt_notifier"
-
-# The defaults address and port of the MQTT broker
-DEFAULT_MQTT_BROKER_HOST = "localhost"
-DEFAULT_MQTT_BROKER_PORT = 1883
-
-# The defaults prefix used to scope MQTT topics
-DEFAULT_MQTT_PREFIX = ""
 
 class MQTTNotifier:
     """
     This class encapsulates publishing of state/errors/task status to the frontend/clients.
     """
+
+    DEFAULT_MQTT_CLIENT_ID = "mqtt_notifier"
+
     def __init__(self,
                  sim_id: int,
-                 broker_hostname: str = DEFAULT_MQTT_BROKER_HOST, broker_port: int = DEFAULT_MQTT_BROKER_PORT,
-                 topics_prefix: str = DEFAULT_MQTT_PREFIX,
-                 client_id: str = DEFAULT_MQTT_CLIENT_ID):
+                 broker_hostname: str = Settings.DEFAULT_MQTT_BROKER_HOST, broker_port: int = Settings.DEFAULT_MQTT_BROKER_PORT,
+                 topics_prefix: str = Settings.DEFAULT_MQTT_TOPICS_PREFIX,
+                 client_id: Optional[str] = DEFAULT_MQTT_CLIENT_ID):
 
-        self.sim_id = sim_id
-        self.mqtt_broker_hostname = broker_hostname
-        self.mqtt_broker_port = broker_port
-        self.mqtt_prefix = topics_prefix
+        self.sim_id: int = sim_id
+        self.mqtt_broker_hostname: str = broker_hostname
+        self.mqtt_broker_port: str = broker_port
+        self.mqtt_topics_prefix: str = topics_prefix
 
-        self.mqtt_client_id = client_id
-        
-        self.status_topic = TOPIC_STATUS(self.sim_id)
-        self.error_topic = TOPIC_ERROR(self.sim_id)
+        self.mqtt_client_id: str = client_id
 
-        if self.mqtt_prefix:
-            self.status_topic = f"{self.mqtt_prefix}/{self.status_topic}"
-            self.error_topic = f"{self.mqtt_prefix}/{self.error_topic}"
+        self.status_topic: str = TOPIC_STATUS(self.sim_id)
+        self.error_topic: str = TOPIC_ERROR(self.sim_id)
+
+        if self.mqtt_topics_prefix:
+            self.status_topic = f"{self.mqtt_topics_prefix}/{self.status_topic}"
+            self.error_topic = f"{self.mqtt_topics_prefix}/{self.error_topic}"
+            # prefix mqtt_client_id with mqtt_topics_prefix
+            # TODO it should be prefixed by a globally unique sim_id (NRRPLT-8917)
+            self.mqtt_client_id = f"{self.mqtt_topics_prefix}_{self.mqtt_client_id}"
 
         # task specific bookkeeping
         self.__current_task: Optional[str] = None

@@ -96,11 +96,13 @@ class TestLifecycle(unittest.TestCase):
     def test_prefixed_synchronization_topic(self):
         mqtt_topics_prefix = "prefix"
         synchronization_topic = "simulationLifecycle_topic"
+        mqtt_client_id="my_id",
         lifecycle = MockLifecycle(synchronization_topic=synchronization_topic,
-                                  mqtt_client_id="my_id",
+                                  mqtt_client_id=mqtt_client_id,
                                   mqtt_topics_prefix = "prefix")
     
-        self.assertIn(lifecycle.synchronization_topic, f"{mqtt_topics_prefix}/{synchronization_topic}")
+        self.assertTrue(lifecycle.synchronization_topic.startswith(mqtt_topics_prefix))
+        self.assertTrue(lifecycle.mqtt_client_id.startswith(mqtt_topics_prefix))
 
 
     def test_init_mqtt(self):

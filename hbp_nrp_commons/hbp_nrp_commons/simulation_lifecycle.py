@@ -262,8 +262,14 @@ class SimulationLifecycle:
         # states for which change events should NOT be propagated to other lifecycles
         self._silent_destinations = frozenset(self.STATES) - frozenset(propagated_destinations)
 
-        self.synchronization_topic = f"{self.mqtt_topics_prefix}/{synchronization_topic}" if self.mqtt_topics_prefix else synchronization_topic
+        self.synchronization_topic = synchronization_topic
         self.clear_synchronization_topic = clear_synchronization_topic
+
+        if self.mqtt_topics_prefix:
+            self.synchronization_topic = f"{self.mqtt_topics_prefix}/{synchronization_topic}"
+            # prefix mqtt_client_id with mqtt_topics_prefix
+            # TODO it should be prefixed by a globally unique sim_id (NRRPLT-8917)
+            self.mqtt_client_id = f"{self.mqtt_topics_prefix}_{mqtt_client_id}"
 
         # Transitions adds some members based on the STATES and transitions
         # We assign them dummy values here to avoid pylint warnings

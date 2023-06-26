@@ -28,8 +28,8 @@ import json
 import unittest
 from unittest import mock
 
-from hbp_nrp_simserver.server import mqtt_notifier
 from hbp_nrp_simserver.server.mqtt_notifier import MQTTNotifier
+
 
 
 class TestMQTTNotifier(unittest.TestCase):
@@ -42,24 +42,42 @@ class TestMQTTNotifier(unittest.TestCase):
         self.mqtt_client_publish_mock = self.mqtt_client_mock.publish
         self.addCleanup(patcher_mqtt_client.stop)
 
+        # patcher_settings = mock.patch('hbp_nrp_simserver.server.mqtt_notifier.Settings')
+        # self.patcher_settings_class_mock = patcher_settings.start()
+
+        DEFAULT_MQTT_BROKER_HOST ="home"
+        DEFAULT_MQTT_BROKER_PORT = 42
+
+        new_defaults = (DEFAULT_MQTT_BROKER_HOST, DEFAULT_MQTT_BROKER_PORT, "","mqtt_notifier")
+
+        # self.addCleanup(patcher_settings.stop)
+
         self.sim_id = 0
-        self.__mqtt_notifier: MQTTNotifier = MQTTNotifier(sim_id=self.sim_id)
+        with mock.patch.object(MQTTNotifier.__init__, '__defaults__', new_defaults):
+            self.__mqtt_notifier: MQTTNotifier = MQTTNotifier(sim_id=self.sim_id)
 
     def test_mqtt_node_init(self):
-        self.assertEqual(self.__mqtt_notifier.mqtt_client_id,
-                         mqtt_notifier.DEFAULT_MQTT_CLIENT_ID)
-        self.mqtt_client_class_mock.assert_called_with(mqtt_notifier.DEFAULT_MQTT_CLIENT_ID,
+        self.mqtt_client_class_mock.assert_called_with(MQTTNotifier.DEFAULT_MQTT_CLIENT_ID,
                                                        clean_session=True)
-        self.mqtt_client_mock.connect.assert_called_with(host=mqtt_notifier.DEFAULT_MQTT_BROKER_HOST,
-                                                         port=mqtt_notifier.DEFAULT_MQTT_BROKER_PORT)
+        
+        self.mqtt_client_mock.connect.assert_called_with(host="home",
+                                                         port=42)
         self.mqtt_client_mock.loop_start.assert_called()
 
     def test_init_topics_prefix(self):
-        for prefix in ["", "a_prefix"]:
-            mqtt_notifier = MQTTNotifier(sim_id=self.sim_id, topics_prefix=prefix)
+        prefix = "a_prefix"
+        mqtt_notifier = MQTTNotifier(sim_id=self.sim_id, topics_prefix=prefix)
 
-            self.assertTrue(mqtt_notifier.status_topic.startswith(prefix))
-            self.assertTrue(mqtt_notifier.error_topic.startswith(prefix))
+        for attribute in ["status_topic", "status_topic", "mqtt_client_id"]:
+            self.assertTrue(getattr(mqtt_notifier, attribute).startswith(prefix))
+
+        # empty prefix
+        prefix = ""
+        mqtt_notifier = MQTTNotifier(sim_id=self.sim_id, topics_prefix=prefix)
+
+        for attribute in ["status_topic", "status_topic", "mqtt_client_id"]:
+            self.assertFalse(getattr(mqtt_notifier, attribute).startswith("/"))
+
 
     def test_shutdown(self):
         self.__mqtt_notifier.shutdown()
