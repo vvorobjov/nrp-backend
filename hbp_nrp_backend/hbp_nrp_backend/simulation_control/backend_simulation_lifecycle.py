@@ -33,18 +33,18 @@ import itertools
 import logging
 import os
 import tempfile
-from typing import Optional
+import time
+from typing import Optional, List, AnyStr
 
 import hbp_nrp_backend.simulation_control.simulation as sim
 import hbp_nrp_backend.storage_client_api.storage_client as storage_client
 import hbp_nrp_backend.user_authentication as user_auth
 import hbp_nrp_simserver.server as simserver
+from hbp_nrp_backend import NRPServicesGeneralException
+from hbp_nrp_commons import zip_util
 from hbp_nrp_commons.simulation_lifecycle import SimulationLifecycle
 from hbp_nrp_commons.workspace.sim_util import SimUtil
 from hbp_nrp_simserver.server.simulation_server_instance import SimulationServerInstance
-
-from hbp_nrp_backend import NRPServicesGeneralException
-from hbp_nrp_commons import zip_util
 
 __author__ = 'NRP software team, Georg Hinkel, Ugo Albanese'
 
@@ -251,15 +251,16 @@ class BackendSimulationLifecycle(SimulationLifecycle):
         sim_id_str: str = str(self.simulation.sim_id)
 
         logs_globs = ("*.log", ".*.log")
-        logs_file_lists = [glob.glob(os.path.join(self._sim_dir, gl)) for gl in
-                           logs_globs]  # list of lists
+        logs_file_lists: List[List[AnyStr]] = [glob.glob(os.path.join(self._sim_dir, gl)) for gl in
+                                               logs_globs]
 
         if not any(logs_file_lists):  # empty logs_file_lists
-            logger.debug("No logs to save on storage. Simulation ID: '%s'",
-                         sim_id_str)
+            logger.debug("No logs to save on storage. Simulation ID: '%s'", sim_id_str)
             return
 
-        logs_filename = f"simulation_{sim_id_str}.log.zip"
+        timestamp_str = time.strftime('%Y-%m-%d_%H-%M-%S')
+
+        logs_filename = f"{timestamp_str}_simulation_{sim_id_str}.log.zip"
 
         temp_dest = os.path.join(tempfile.gettempdir(), logs_filename)
 
