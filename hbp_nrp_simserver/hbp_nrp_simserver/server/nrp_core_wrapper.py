@@ -92,9 +92,8 @@ class NrpCoreWrapper:
             mqtt_address_str = f"{Settings.mqtt_broker_host}:{Settings.mqtt_broker_port}"
             conf_overrides.append(f"{data_engine_conf_prefix_str}.MQTTBroker={mqtt_address_str}")
 
-        # override MQTTPrefix if specified in workspace.Settings via Env Vars
-        if Settings.mqtt_topics_prefix:
-            conf_overrides.append(f"{data_engine_conf_prefix_str}.MQTTPrefix={Settings.mqtt_topics_prefix}")
+        # override MQTTPrefix (specified in workspace.Settings via Env Var) in any case (set/empty string)
+        conf_overrides.append(f'{data_engine_conf_prefix_str}.MQTTPrefix={Settings.mqtt_topics_prefix}')
 
         conf_overrides_str = ' -o '.join(conf_overrides).strip()
 

@@ -92,7 +92,7 @@ class _Settings:
             raise Exception(
                 "Simulation directory symlink location is not specified in NRP_SIMULATION_DIR")
 
-        # The address of the MQTT broker, defaults to localhost:1883
+        # The address of the MQTT broker, defaults to DEFAULT_MQTT_BROKER_HOST:DEFAULT_MQTT_BROKER_PORT
         try:
             host, port = os.environ.get(self.env_vars_name['MQTT_BROKER']).split(":")
             self.mqtt_broker_host = host

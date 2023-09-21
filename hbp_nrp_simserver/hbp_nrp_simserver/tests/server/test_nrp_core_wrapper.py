@@ -54,7 +54,7 @@ class TestNrpCoreWrapper(unittest.TestCase):
         settings_patcher = mock.patch(f'{self.base_path}.Settings')
         self.settings_mock = settings_patcher.start()
         self.settings_mock.is_mqtt_broker_default = False
-        self.settings_mock.mqtt_broker_host = "locahost_mock"
+        self.settings_mock.mqtt_broker_host = "localhost_mock"
         self.settings_mock.mqtt_broker_port = "4242"
         self.settings_mock.mqtt_topics_prefix = ""
         self.addCleanup(settings_patcher.stop)
@@ -89,11 +89,23 @@ class TestNrpCoreWrapper(unittest.TestCase):
 
     # __init__
     def test_init(self):
-        args = '-o EngineConfigs.3.simulationID=42 -o EngineConfigs.3.MQTTBroker=locahost_mock:4242'
+        engine_param_override_arg = "-o"
+        engine_configs_arg = "EngineConfigs"
+        sim_id = "3"
+        field_sep = "."
+        args_to_override_dict = {"simulationID" : "42",
+                                 "MQTTBroker": f"{self.settings_mock.mqtt_broker_host}:{self.settings_mock.mqtt_broker_port}",
+                                 "MQTTPrefix": self.settings_mock.mqtt_topics_prefix}
+        
+        args_to_override_mappings = [f"{k}={v}" for k,v in args_to_override_dict.items()]
+
+        #e.g. -o EngineConfigs.3.simulationID=42 -o EngineConfigs.3.MQTTBroker=localhost_mock:4242 -o EngineConfigs.3.MQTTPrefix='
+        args_to_override_str = " ".join([f"{engine_param_override_arg} {field_sep.join([engine_configs_arg, sim_id, args_to_override_mapping])}" 
+                                         for args_to_override_mapping in args_to_override_mappings])
 
         self.nrp_core_class_mock.assert_called_with(NrpCoreWrapper.NRP_CORE_DEFAULT_ADDRESS_PORT,
                                                     config_file=self.exp_config_file,
-                                                    args=args)
+                                                    args=args_to_override_str)
 
     def test_init_topics_prefix(self):
 
@@ -107,6 +119,20 @@ class TestNrpCoreWrapper(unittest.TestCase):
                                                stopped_event=self.stopped_event_mock)
 
         mqtt_prefix_arg = '-o EngineConfigs.3.MQTTPrefix=mqtt_prefix'
+        self.assertIn(mqtt_prefix_arg, self.nrp_core_class_mock.call_args.kwargs["args"])
+
+    def test_init_topics_empty_prefix(self):
+
+        self.settings_mock.mqtt_topics_prefix = ""
+
+        self.nrp_core_wrapper = NrpCoreWrapper(self.nrp_core_class_mock,
+                                               sim_id="42",
+                                               exp_config_file=self.exp_config_file,
+                                               exp_config=self.exp_config_mock,
+                                               paused_event=self.paused_event_mock,
+                                               stopped_event=self.stopped_event_mock)
+
+        mqtt_prefix_arg = '-o EngineConfigs.3.MQTTPrefix='
         self.assertIn(mqtt_prefix_arg, self.nrp_core_class_mock.call_args.kwargs["args"])
 
     # stop, reset, shutdown, initialize
