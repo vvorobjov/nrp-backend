@@ -28,4 +28,15 @@ ENV STORAGE_PATH=/nrpStorage
 RUN sudo mkdir -p ${STORAGE_PATH}
 RUN sudo chown ${NRP_USER}:${NRP_GROUP} ${STORAGE_PATH}
 
+# nginx is started by entrypoint.sh and listens on 8090 (per the
+# nrp-user-scripts/config_files/nginx.docker/conf.d/nrp-services.conf
+# that gets mounted in). /version is an unauthenticated Flask-RESTful
+# resource (api.add_resource(Version, '/version')), suitable for a
+# liveness probe. `localhost` resolves to both 127.0.0.1 and ::1 via
+# /etc/hosts, so the probe survives an IPv6-only bind.
+ENV BACKEND_HEALTHCHECK_URL=http://localhost:8090/version
+HEALTHCHECK --interval=20s --timeout=5s --start-period=60s --retries=3 \
+  CMD python3 -c "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen(__import__('os').environ['BACKEND_HEALTHCHECK_URL'], timeout=4).status < 500 else 1)" \
+      || exit 1
+
 CMD [ "bash", "entrypoint.sh" ]
