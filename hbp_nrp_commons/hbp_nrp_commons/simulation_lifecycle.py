@@ -209,7 +209,7 @@ class SimulationLifecycle:
             logger.exception(
                 "Error failing the simulation (this should never happen): %s", str(e2))
 
-    def __on_connect(self, client, _userdata: dict, _flags, _rc):
+    def __on_connect(self, client, _userdata: dict, _flags, _reason_code, _properties):
         logger.debug("Connected to MQTT broker with id '%s'", self.mqtt_client_id)
 
         # clear the topic from stale retained msgs if required
@@ -309,8 +309,11 @@ class SimulationLifecycle:
 
         # NOTE MQTTv5 requires clean_start=True parameter to connect
         # instead of clean_session=True here
-        self.__mqtt_client: Optional[mqtt.Client] = mqtt.Client(self.mqtt_client_id,
-                                                         clean_session=True)
+        self.__mqtt_client: Optional[mqtt.Client] = mqtt.Client(
+            callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
+            client_id=self.mqtt_client_id,
+            clean_session=True,
+        )
 
         self.__mqtt_client.on_connect = self.__on_connect
         self.__mqtt_client.message_callback_add(self.synchronization_topic,

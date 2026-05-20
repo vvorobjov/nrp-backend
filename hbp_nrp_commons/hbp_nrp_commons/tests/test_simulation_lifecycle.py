@@ -357,7 +357,7 @@ class TestLifecycle(unittest.TestCase):
                             clear_synchronization_topic=clear_topic)
 
         mqtt_client=self.mqtt_client_mock.return_value
-        mqtt_client.on_connect(mqtt_client, {}, mock.ANY, mock.ANY)
+        mqtt_client.on_connect(mqtt_client, {}, mock.ANY, mock.ANY, mock.ANY)
         self.assert_publisher_called_with(topic=topic, payload="", retain=clear_topic)
         self.assertTrue(mqtt_client.subscribe.called)
 

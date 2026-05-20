@@ -76,8 +76,11 @@ class MQTTNotifier:
 
         # NOTE MQTTv5 requires clean_start=True parameter to connect
         # instead of clean_session=True here
-        self.__mqtt_client: Optional[mqtt.Client] = mqtt.Client(self.mqtt_client_id,
-                                                                clean_session=True)
+        self.__mqtt_client: Optional[mqtt.Client] = mqtt.Client(
+            callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
+            client_id=self.mqtt_client_id,
+            clean_session=True,
+        )
 
         self.__mqtt_client.on_connect = self.__on_connect
         self.__mqtt_client.connect(host=self.mqtt_broker_hostname, port=self.mqtt_broker_port)
@@ -85,7 +88,7 @@ class MQTTNotifier:
 
         logger.info("MQTT notifier initialized. Simulation ID: '%s'", self.sim_id)
 
-    def __on_connect(self, _client, _userdata, _flags, _rc):
+    def __on_connect(self, _client, _userdata, _flags, _reason_code, _properties):
         logger.debug("Connected to MQTT broker at %s:%d with 'id' %s. Simulation ID: '%s'",
                      self.mqtt_broker_hostname, self.mqtt_broker_port, self.mqtt_client_id, self.sim_id)
 
