@@ -1,5 +1,7 @@
-# Download base image
-ARG BASE_IMAGE=docker-registry.ebrains.eu/nrp/nrp-core/nrp-vanilla-ubuntu20:dev4.0
+# Download base image. Defaults to the nest-gazebo nrp-core variant
+# (the one most templates need); the GitHub Actions workflow overrides
+# this per variant via --build-arg BASE_IMAGE=hbpneurorobotics/nrp-<variant>.
+ARG BASE_IMAGE=hbpneurorobotics/nrp-nest-gazebo:latest
 FROM ${BASE_IMAGE}
 
 RUN sudo apt-get update && \
