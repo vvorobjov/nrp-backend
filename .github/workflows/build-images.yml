@@ -34,7 +34,9 @@ on:
   pull_request:
 
 concurrency:
-  group: build-backend-${{ github.ref }}-${{ matrix.variant || 'all' }}
+  # NB: the `matrix` context is not available at workflow level, only
+  # inside jobs — referencing it here makes the whole file invalid.
+  group: build-backend-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
