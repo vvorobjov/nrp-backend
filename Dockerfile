@@ -1,9 +1,11 @@
-# Download base image
-ARG BASE_IMAGE=docker-registry.ebrains.eu/nrp/nrp-core/nrp-vanilla-ubuntu20:dev4.0
+# Download base image. Defaults to the nest-gazebo nrp-core variant
+# (the one most templates need); the GitHub Actions workflow overrides
+# this per variant via --build-arg BASE_IMAGE=hbpneurorobotics/nrp-<variant>.
+ARG BASE_IMAGE=hbpneurorobotics/nrp-nest-gazebo:latest
 FROM ${BASE_IMAGE}
 
 RUN sudo apt-get update && \
-    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3.8-venv python3-restrictedpython uwsgi-core uwsgi-plugin-python3 python-is-python3
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3.10-venv python3-restrictedpython uwsgi-core uwsgi-plugin-python3 python-is-python3
 RUN sudo apt-get update && \
     sudo DEBIAN_FRONTEND=noninteractive apt-get install -y nginx-extras lua-cjson
 
@@ -20,7 +22,7 @@ ENV NRP_VIRTUAL_ENV VIRTUAL_ENV
 RUN make devinstall
 
 ENV VIRTUAL_ENV ${HOME}/nrp-backend/platform_venv
-ENV PYTHONPATH ${PYTHONPATH}:${VIRTUAL_ENV}/lib/python3.8/site-packages
+ENV PYTHONPATH ${PYTHONPATH}:${VIRTUAL_ENV}/lib/python3.10/site-packages
 ENV PYTHONPATH $PYTHONPATH:$HBP/nrp-backend/hbp_nrp_backend:$HBP/nrp-backend/hbp_nrp_simserver:$HBP/nrp-backend/hbp_nrp_commons
 
 ENV NRP_SIMULATION_DIR /tmp/nrp-simulation-dir

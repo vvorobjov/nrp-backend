@@ -1,0 +1,106 @@
+name: Build & push backend images
+
+# Builds the in-repo Dockerfile once per nrp-core variant and pushes the
+# results as tags on a single Docker Hub repo, hbpneurorobotics/nrp-backend.
+# Each variant builds FROM the matching nrp-core runtime image published
+# by EBR2-91:
+#
+#   vanilla      FROM hbpneurorobotics/nrp-vanilla:latest      -> :vanilla
+#   nest-gazebo  FROM hbpneurorobotics/nrp-nest-gazebo:latest  -> :nest-gazebo
+#
+# CI lives on GitHub Actions, not Bitbucket Pipelines (public GitHub repo
+# = free unlimited standard-runner minutes + 6 h/job). Bitbucket remains
+# the canonical repo for PRs + tickets; development/master are synced to
+# GitHub, and that synced push fires this workflow.
+#
+# The original single-image scheme only built FROM the vanilla base, so
+# templates needing a simulator failed at launch ("gzserver: not found").
+# Variant selection now lives in the tag (per EBR2-56): the local stack
+# sets NRP_IMAGE_TAG=:nest-gazebo.
+#
+# Tag policy:
+#   pull_request        -> build only, NO push (validate)
+#   push to development  -> :<variant> + :<variant>-sha-<short>
+#   push to master       -> :<variant>-stable + :<variant>-sha-<short>
+#
+# Actions secrets required:
+#   DOCKERHUB_USER   = hbpneurorobotics
+#   DOCKERHUB_TOKEN  = Docker Hub PAT with write scope
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [development, master]
+  pull_request:
+
+concurrency:
+  # NB: the `matrix` context is not available at workflow level, only
+  # inside jobs — referencing it here makes the whole file invalid.
+  group: build-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.variant }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: vanilla
+            base: nrp-vanilla
+          - variant: nest-gazebo
+            base: nrp-nest-gazebo
+    env:
+      IMAGE: ${{ secrets.DOCKERHUB_USER }}/nrp-backend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Resolve base-image channel
+        id: chan
+        run: |
+          # master consumes the :stable nrp-core base; everything else :latest.
+          if [ "${GITHUB_REF_NAME}" = "master" ]; then
+            echo "base_tag=stable" >> "$GITHUB_OUTPUT"
+          else
+            echo "base_tag=latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build ${{ matrix.variant }}
+        run: |
+          set -euxo pipefail
+          SHORT="sha-${GITHUB_SHA::12}"
+          BASE="${{ secrets.DOCKERHUB_USER }}/${{ matrix.base }}:${{ steps.chan.outputs.base_tag }}"
+          docker build --build-arg "BASE_IMAGE=${BASE}" \
+            -t "${IMAGE}:${{ matrix.variant }}-${SHORT}" .
+
+      - name: Log in to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Tag & push
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euxo pipefail
+          SHORT="sha-${GITHUB_SHA::12}"
+          SHA_TAG="${IMAGE}:${{ matrix.variant }}-${SHORT}"
+          case "${GITHUB_REF_NAME}" in
+            development) CHANNEL="${{ matrix.variant }}" ;;
+            master)      CHANNEL="${{ matrix.variant }}-stable" ;;
+            *) echo "Ref '${GITHUB_REF_NAME}' is not a publish branch; skipping push."; exit 0 ;;
+          esac
+          docker tag "${SHA_TAG}" "${IMAGE}:${CHANNEL}"
+          docker push "${SHA_TAG}"
+          docker push "${IMAGE}:${CHANNEL}"
+
+      - name: PR build summary
+        if: github.event_name == 'pull_request'
+        run: echo "PR build of ${IMAGE}:${{ matrix.variant }} succeeded; not pushing."
