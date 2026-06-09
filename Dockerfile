@@ -21,6 +21,13 @@ ENV NRP_VIRTUAL_ENV VIRTUAL_ENV
 
 RUN make devinstall
 
+# [EBR2-93] nrp-core's nrp_client does `from pkg_resources import ...`,
+# but setuptools removed pkg_resources in v81 and jammy/py3.10 venvs
+# ship setuptools 82 — so the WSGI app fails to import at runtime
+# (ModuleNotFoundError: pkg_resources) and the backend never serves
+# /version. Pin setuptools<81 in the venv to keep pkg_resources.
+RUN ${HOME}/nrp-backend/platform_venv/bin/pip install "setuptools<81"
+
 ENV VIRTUAL_ENV ${HOME}/nrp-backend/platform_venv
 ENV PYTHONPATH ${PYTHONPATH}:${VIRTUAL_ENV}/lib/python3.10/site-packages
 ENV PYTHONPATH $PYTHONPATH:$HBP/nrp-backend/hbp_nrp_backend:$HBP/nrp-backend/hbp_nrp_simserver:$HBP/nrp-backend/hbp_nrp_commons
