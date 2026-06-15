@@ -25,6 +25,7 @@
 SimulationServerInstance unit test
 """
 
+import logging
 import os
 import signal
 import threading
@@ -83,6 +84,13 @@ class TestSimulationServerInstance(unittest.TestCase):
             self.assertFalse(self.ssi.is_running)
 
     def test_initialize(self):
+        # The sim-server gets a `--verbose` arg only when this logger is at DEBUG;
+        # pin the level so the assertion is deterministic regardless of the test
+        # runner (pytest's log handling otherwise leaves it at DEBUG). [EBR2-66]
+        sim_logger = logging.getLogger("hbp_nrp_backend.simulation_server_instance")
+        old_level = sim_logger.level
+        sim_logger.setLevel(logging.INFO)
+        self.addCleanup(sim_logger.setLevel, old_level)
         with mock.patch(f"{self.base_path}.os") as mock_os:
             mock_os.path.dirname.return_value = ""
             mock_os.environ = {"VAR": "foo"}

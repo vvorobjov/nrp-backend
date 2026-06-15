@@ -114,9 +114,16 @@ test-reports-dir:
 test_dep: devinstall doc_dep ci_dep $(patsubst %.txt, %.req_make, $(REQUIREMENTS_TEST))
 
 TEST_TARGETS:=$(addprefix test_, $(TEST_MODULES))
+# EBR2-66: unit tests run under pytest (was nosetests). The runtime image ships
+# ROS 2 launch_testing pytest plugins that crash collection on import, so plugin
+# autoload is disabled and pytest-cov is loaded explicitly. A failing test now
+# fails the target — the old `|| echo "Nosetest failed"` silently swallowed it.
 $(TEST_TARGETS): test_%: test_dep
 	@-rm .coverage 2> /dev/null
-	$(PLATFORM_VENV)/bin/nosetests $* -e functional_tests $(NOSEOPS) --exe --with-coverage --cover-inclusive --cover-package=$(COVER_PACKAGES) --with-xunit --xunit-file=$(TEST_REPORTS_DIR)/nosetests_$(subst /,_,$(*:/=)).xml || echo "Nosetest failed"
+	PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 $(PLATFORM_VENV)/bin/python -m pytest $* \
+		--ignore-glob='*/functional_tests/*' -p no:cacheprovider -p pytest_cov.plugin \
+		--cov=$* --cov-report= \
+		--junitxml=$(TEST_REPORTS_DIR)/pytest_$(subst /,_,$(*:/=)).xml
 	mv .coverage .coverage.$(subst /,_,$(*:=/))
 
 OMIT:=$(subst $(SPACE),$(COMMA),$(PLATFORM_VENV)/* ./*/tests/* $(addsuffix /*,$(subst |,$(SPACE),$(IGNORE_LINT))))
@@ -131,16 +138,16 @@ FUNCTIONAL_TEST_DIRS:=$(shell find . -path "./*/functional_tests" -type d -print
 FUNCTIONAL_TEST_TARGETS:=$(addprefix functional_test_, $(dir $(FUNCTIONAL_TEST_DIRS)))
 
 $(FUNCTIONAL_TEST_TARGETS): functional_test_%: test-reports-dir test_dep
-	$(PLATFORM_VENV)/bin/nosetests $*/functional_tests $(NOSEOPS) --exe --with-xunit --xunit-file=test-reports/nosetests_functional_$(*F).xml
+	PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 $(PLATFORM_VENV)/bin/python -m pytest $*/functional_tests -p no:cacheprovider --junitxml=test-reports/pytest_functional_$(*F).xml
 
 functional_test: test-reports-dir test_dep
-	[ -d functional_tests ] && $(PLATFORM_VENV)/bin/nosetests functional_tests $(NOSEOPS) --exe --with-xunit --xunit-file=$(TEST_REPORTS_DIR)/nosetests_functional.xml || true
+	[ -d functional_tests ] && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 $(PLATFORM_VENV)/bin/python -m pytest functional_tests -p no:cacheprovider --junitxml=$(TEST_REPORTS_DIR)/pytest_functional.xml || true
 
 functional_test_all: functional_test $(FUNCTIONAL_TEST_TARGETS)
 
 TEST_TARGETS_NOCOVER:=$(addprefix test_no_cover_, $(TEST_MODULES))
 $(TEST_TARGETS_NOCOVER): test_no_cover_%: test_dep
-	$(PLATFORM_VENV)/bin/nosetests $* -e functional_tests $(NOSEOPS) --exe --process-timeout=$(TIMEOUT) --processes=1 --with-xunit --xunit-file=$(TEST_REPORTS_DIR)/nosetests_$(subst /,_,$(*:/=)).xml
+	PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 $(PLATFORM_VENV)/bin/python -m pytest $* --ignore-glob='*/functional_tests/*' -p no:cacheprovider --junitxml=$(TEST_REPORTS_DIR)/pytest_$(subst /,_,$(*:/=)).xml
 
 test-nocover: test-reports-dir test_dep $(TEST_TARGETS_NOCOVER)
 

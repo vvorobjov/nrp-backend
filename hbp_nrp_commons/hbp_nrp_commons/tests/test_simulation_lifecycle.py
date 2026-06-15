@@ -31,6 +31,8 @@ from hbp_nrp_commons.workspace.settings import Settings
 import unittest
 import json
 
+import paho.mqtt.client as mqtt
+
 __author__ = 'NRP software team, Ugo Albanese, Georg Hinkel'
 
 
@@ -110,7 +112,9 @@ class TestLifecycle(unittest.TestCase):
                                   mqtt_client_id="my_id")
 
         # properly create client()
-        self.mqtt_client_mock.assert_has_calls([mock.call("my_id", clean_session=True)])
+        self.mqtt_client_mock.assert_has_calls([mock.call(
+            callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
+            client_id="my_id", clean_session=True)])
 
         # set on_connect callback
         self.assertEqual(self.mqtt_client_mock.return_value.on_connect,

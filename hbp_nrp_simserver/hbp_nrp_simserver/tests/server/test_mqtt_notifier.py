@@ -28,6 +28,8 @@ import json
 import unittest
 from unittest import mock
 
+import paho.mqtt.client as mqtt
+
 from hbp_nrp_simserver.server.mqtt_notifier import MQTTNotifier
 
 
@@ -57,8 +59,10 @@ class TestMQTTNotifier(unittest.TestCase):
             self.__mqtt_notifier: MQTTNotifier = MQTTNotifier(sim_id=self.sim_id)
 
     def test_mqtt_node_init(self):
-        self.mqtt_client_class_mock.assert_called_with(MQTTNotifier.DEFAULT_MQTT_CLIENT_ID,
-                                                       clean_session=True)
+        self.mqtt_client_class_mock.assert_called_with(
+            callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
+            client_id=MQTTNotifier.DEFAULT_MQTT_CLIENT_ID,
+            clean_session=True)
         
         self.mqtt_client_mock.connect.assert_called_with(host="home",
                                                          port=42)
