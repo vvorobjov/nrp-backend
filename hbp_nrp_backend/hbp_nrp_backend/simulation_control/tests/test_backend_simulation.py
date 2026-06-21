@@ -115,6 +115,50 @@ class TestBackendSimulationLifecycle(unittest.TestCase):
             self.assertEqual(raised_ex.error_type, "Server Error")
             self.assertIsNotNone(raised_ex.data)
 
+    # --- EBR2-97: 'started' must wait for the simserver to be subscribed -------
+
+    def test_start_waits_for_simserver_ready(self):
+        # start() must block on the readiness barrier before the 'started'
+        # synchronization message is propagated, otherwise it can be lost and
+        # the simulation freezes at t=0.
+        with patch.object(self.lifecycle, "_wait_for_simserver_ready",
+                          return_value=True) as wait_mock:
+            self.lifecycle.start(MagicMock())
+        self.assertTrue(wait_mock.called)
+
+    def test_start_proceeds_on_readiness_timeout(self):
+        # If the simserver never signals readiness, start() logs and proceeds;
+        # it must not raise (degrade gracefully).
+        with patch.object(self.lifecycle, "_wait_for_simserver_ready",
+                          return_value=False):
+            self.lifecycle.start(MagicMock())  # must not raise
+
+    def test_wait_for_simserver_ready_subscribes_and_returns_event(self):
+        # The readiness probe connects, subscribes to the sim's status topic,
+        # runs its loop, returns whatever Event.wait() reports, and always
+        # tears the probe down.
+        with patch(f'{_base_path}.mqtt') as mqtt_mock, \
+             patch(f'{_base_path}.threading.Event') as event_cls:
+            event_cls.return_value.wait.return_value = True
+            result = self.lifecycle._wait_for_simserver_ready(timeout=0.01)
+
+        probe = mqtt_mock.Client.return_value
+        self.assertTrue(result)
+        self.assertTrue(probe.connect.called)
+        self.assertTrue(probe.subscribe.called)
+        self.assertTrue(probe.loop_start.called)
+        self.assertTrue(probe.loop_stop.called)
+        self.assertTrue(probe.disconnect.called)
+
+    def test_wait_for_simserver_ready_timeout_returns_false(self):
+        with patch(f'{_base_path}.mqtt') as mqtt_mock, \
+             patch(f'{_base_path}.threading.Event') as event_cls:
+            event_cls.return_value.wait.return_value = False
+            result = self.lifecycle._wait_for_simserver_ready(timeout=0.01)
+        self.assertFalse(result)
+        # even on timeout the probe is torn down
+        self.assertTrue(mqtt_mock.Client.return_value.disconnect.called)
+
     def test_backend_sim_server_instance_initialize_fail(self):
 
         self.simserver_instance_mock.return_value.initialize.side_effect = Exception

@@ -33,8 +33,11 @@ import itertools
 import logging
 import os
 import tempfile
+import threading
 import time
 from typing import Optional, List, AnyStr
+
+import paho.mqtt.client as mqtt
 
 import hbp_nrp_backend.simulation_control.simulation as sim
 import hbp_nrp_backend.storage_client_api.storage_client as storage_client
@@ -60,6 +63,10 @@ class BackendSimulationLifecycle(SimulationLifecycle):
     # Backend should only state change towards these states.
     # In fact, Backend can't make a simulation fail.
     propagated_destinations = SimulationLifecycle.RUNNING_STATES  # anything but final states
+
+    # Max seconds to wait, before starting, for the freshly-spawned simulation
+    # server to subscribe to the lifecycle topic. See start() / _wait_for_simserver_ready().
+    SIMSERVER_READY_TIMEOUT = 60
 
     def __init__(self,
                  simulation: sim.Simulation,
@@ -161,15 +168,60 @@ class BackendSimulationLifecycle(SimulationLifecycle):
                 error_type="Server Error",
                 data=ex) from ex
 
+    def _wait_for_simserver_ready(self, timeout: float = SIMSERVER_READY_TIMEOUT) -> bool:
+        """
+        Block until the spawned simulation server has subscribed to the lifecycle topic.
+
+        ``initialize()`` forks the simulation server asynchronously and returns
+        immediately; the server publishes status messages only AFTER it has
+        connected to MQTT, subscribed to the lifecycle synchronization topic and
+        processed the retained ``initialized`` message (i.e. reached ``paused``).
+        Waiting for its first status message is therefore a sufficient readiness
+        signal: it guarantees the server is subscribed, so the subsequent
+        (non-retained) ``started`` synchronization message is delivered live
+        rather than lost — which would otherwise leave the simulation frozen at
+        t=0.
+
+        :param timeout: maximum seconds to wait for the readiness signal.
+        :return: True if the simulation server signalled readiness within timeout.
+        """
+        status_topic = simserver.TOPIC_STATUS(self.simulation.sim_id)
+        if self.mqtt_topics_prefix:
+            status_topic = f"{self.mqtt_topics_prefix}/{status_topic}"
+
+        ready = threading.Event()
+        probe = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
+                            client_id=f"{self.mqtt_client_id}_ready_probe",
+                            clean_session=True)
+        probe.on_message = lambda _client, _userdata, _msg: ready.set()
+        try:
+            probe.connect(host=self.mqtt_broker_host, port=self.mqtt_broker_port)
+            probe.subscribe(status_topic)
+            probe.loop_start()
+            return ready.wait(timeout)
+        finally:
+            try:
+                probe.loop_stop()
+                probe.disconnect()
+            except Exception:  # pylint: disable=broad-except
+                pass
+
     def start(self, _state_change):
         """
         Starts the simulation
 
         :param _state_change: The state change that led to starting the simulation
         """
-        # Nothing to do here, the starting process will be carried out
-        # by SimulationServerLifecycle
-        pass
+        # The simulation server is spawned asynchronously by initialize() and is
+        # started by SimulationServerLifecycle reacting to the 'started'
+        # synchronization message. That message is published (non-retained) right
+        # after this callback returns, so we must first make sure the server has
+        # already subscribed to the lifecycle topic; otherwise the message is lost
+        # and the simulation stays frozen in 'paused' at t=0 (EBR2-97).
+        if not self._wait_for_simserver_ready():
+            logger.warning("Simulation server did not signal readiness within %ss; "
+                           "starting anyway. Simulation ID '%s'",
+                           self.SIMSERVER_READY_TIMEOUT, str(self.simulation.sim_id))
 
     def stop(self, _state_change):
         """
