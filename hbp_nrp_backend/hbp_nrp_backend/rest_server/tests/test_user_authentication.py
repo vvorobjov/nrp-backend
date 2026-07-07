@@ -31,6 +31,7 @@ __author__ = 'NRP software team, Oliver Denninger'
 import unittest
 from unittest.mock import patch, MagicMock
 from flask import Flask
+from cachetools import TTLCache
 
 from hbp_nrp_backend.user_authentication import UserAuthentication
 
@@ -46,6 +47,11 @@ class TestUserAuthentication(unittest.TestCase):
 
     def setUp(self):
         self.__app = Flask(__name__)
+        # Auth lookups are memoized in class-level caches; clear them between
+        # tests so cached entries from one test do not leak into another.
+        with UserAuthentication._cache_lock:
+            UserAuthentication._token_owner_cache.clear()
+            UserAuthentication._experiment_access_cache.clear()
 
     def test_get_x_user_name_header(self):
         # ensure 'X-User-Name' header is used if available
@@ -107,6 +113,54 @@ class TestUserAuthentication(unittest.TestCase):
                 # If failed to 'can_access_experiment', it should default to false
                 client.can_access_experiment.side_effect = Exception('Test')
                 self.assertFalse(UserAuthentication.can_view(sim))
+
+    def test_get_token_owner_transient_failure_is_not_cached(self):
+        # A transient storage/proxy error resolves to None but must NOT be cached:
+        # once storage recovers, a later call has to resolve the owner normally.
+        with patch("hbp_nrp_backend.user_authentication.UserAuthentication.client") as client:
+            client.get_user = MagicMock(side_effect=ConnectionError('proxy down'))
+            self.assertIsNone(UserAuthentication.get_token_owner('a_token'))
+
+            # storage recovers
+            client.get_user = MagicMock(return_value={'id': 'myid'})
+            self.assertEqual(UserAuthentication.get_token_owner('a_token'), 'myid')
+
+    def test_get_token_owner_expires_after_ttl(self):
+        # Inject a cache with a controllable clock so we can advance past the TTL
+        # deterministically and prove a (now revoked) token stops resolving.
+        fake_time = [1000.0]
+        controlled_cache = TTLCache(maxsize=8, ttl=60, timer=lambda: fake_time[0])
+        with patch.object(UserAuthentication, '_token_owner_cache', controlled_cache):
+            with patch("hbp_nrp_backend.user_authentication.UserAuthentication.client") as client:
+                client.get_user = MagicMock(return_value={'id': 'myid'})
+
+                # First resolution hits the storage client and gets cached.
+                self.assertEqual(UserAuthentication.get_token_owner('a_token'), 'myid')
+                self.assertEqual(client.get_user.call_count, 1)
+
+                # Within the TTL the value is served from the cache (no new call).
+                self.assertEqual(UserAuthentication.get_token_owner('a_token'), 'myid')
+                self.assertEqual(client.get_user.call_count, 1)
+
+                # Advance beyond the TTL; the token has since been revoked at the
+                # source, so the (expired) cache must not keep it resolving.
+                fake_time[0] += 120
+                client.get_user = MagicMock(return_value=None)
+                self.assertIsNone(UserAuthentication.get_token_owner('a_token'))
+
+    def test_can_view_error_is_not_cached(self):
+        sim = FakeSimulation('Test')
+        with self.__app.test_request_context('/test',
+                                             headers={'Authorization': 'bearer my_token'}):
+            with patch("hbp_nrp_backend.user_authentication.UserAuthentication.client") as client:
+                # A transient error yields False but must NOT be cached.
+                client.can_access_experiment = MagicMock(side_effect=Exception('boom'))
+                self.assertFalse(UserAuthentication.can_view(sim))
+
+                # After recovery the access check must run again and resolve True,
+                # instead of returning a stale cached False.
+                client.can_access_experiment = MagicMock(return_value=True)
+                self.assertTrue(UserAuthentication.can_view(sim))
 
 
 if __name__ == '__main__':
