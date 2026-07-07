@@ -30,7 +30,7 @@ from unittest import mock
 
 import hbp_nrp_simserver.server as sim_server
 from hbp_nrp_commons.tests import utilities_test
-from hbp_nrp_simserver.server.nrp_script_runner import NRPScriptRunner
+from hbp_nrp_simserver.server.nrp_script_runner import NRPScriptRunner, NRP_CORE_MODULES_NAMES
 
 
 class TestNRPScriptRunner(unittest.TestCase):
@@ -376,6 +376,27 @@ class TestNRPScriptRunner(unittest.TestCase):
         with self.assertRaises(ValueError):
             with self.nrp_script_runner._hide_modules([]):
                 raise ValueError
+
+    def test_nrp_core_modules_names_are_individual_names(self):
+        # Regression: this was a single comma-joined string
+        # (["nrp_core, nrp_client"]), so _hide_modules never matched a real
+        # module name and never hid nrp_core/nrp_client.
+        self.assertEqual(NRP_CORE_MODULES_NAMES, ["nrp_core", "nrp_client"])
+
+    def test_hide_modules_hides_nrp_core_modules(self):
+        with mock.patch(f"{self.base_path}.sys") as sys_mock:
+            sys_mock.modules = {name: mock.MagicMock(name=name)
+                                for name in NRP_CORE_MODULES_NAMES}
+            sys_mock.modules["keep_me"] = mock.MagicMock(name="keep_me")
+
+            with self.nrp_script_runner._hide_modules(NRP_CORE_MODULES_NAMES):
+                for name in NRP_CORE_MODULES_NAMES:
+                    self.assertNotIn(name, sys_mock.modules)
+                self.assertIn("keep_me", sys_mock.modules)
+
+            # modules restored on exit
+            for name in NRP_CORE_MODULES_NAMES:
+                self.assertIn(name, sys_mock.modules)
 
 
 if __name__ == '__main__':
