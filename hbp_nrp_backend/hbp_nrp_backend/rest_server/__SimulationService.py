@@ -81,22 +81,11 @@ class SimulationService(Resource):
         :status 409: {0}
         :status 201: {1}
         """
-        # Use context manager to lock access to simulations while a new simulation is created
-        with SimulationService.comm_lock:
-            body = request.get_json(force=True)
+        body = request.get_json(force=True)
 
-            # check request fields
-            if missing_fields := [f for f in Simulation.required_request_fields if f not in body]:
-                raise NRPServicesClientErrorException(f'{" ".join(missing_fields)} not given.')
-
-            # check if another sim is running (i.e. any sim not in a final state)
-            if [s for s in simulations if not SimulationLifecycle.is_final_state(s.state)]:
-                raise NRPServicesClientErrorException(
-                    ErrorMessages.SIMULATION_ANOTHER_RUNNING_409, error_code=409)
-
-            # TODO better simulation IDs
-            # sim_id: uuid.UUID = uuid.uuid4() # then simulations must be a dict
-            sim_id: sim_id_type = len(simulations)
+        # check request fields
+        if missing_fields := [f for f in Simulation.required_request_fields if f not in body]:
+            raise NRPServicesClientErrorException(f'{" ".join(missing_fields)} not given.')
 
         sim_experiment_id = body.get('experimentID', None)
         sim_experiment_configuration = body.get('experimentConfiguration',
@@ -107,15 +96,30 @@ class SimulationService(Resource):
         ctx_id = body.get('ctxId', None)
         token = UserAuthentication.get_header_token()
 
-        sim = Simulation(sim_id,
-                         sim_experiment_id,
-                         sim_owner,
-                         experiment_configuration=sim_experiment_configuration,
-                         main_script=sim_main_script,
-                         state=sim_state,
-                         ctx_id=ctx_id,
-                         token=token)
-        simulations.append(sim)
+        # Use context manager to lock access to simulations while a new simulation is created.
+        # The running-sim check, the sim_id computation and the append MUST happen as one
+        # critical section, otherwise two concurrent POSTs can both see no running sim and
+        # both compute the same sim_id, creating two 'running' simulations and defeating the
+        # single-active-simulation 409.
+        with SimulationService.comm_lock:
+            # check if another sim is running (i.e. any sim not in a final state)
+            if [s for s in simulations if not SimulationLifecycle.is_final_state(s.state)]:
+                raise NRPServicesClientErrorException(
+                    ErrorMessages.SIMULATION_ANOTHER_RUNNING_409, error_code=409)
+
+            # TODO better simulation IDs
+            # sim_id: uuid.UUID = uuid.uuid4() # then simulations must be a dict
+            sim_id: sim_id_type = len(simulations)
+
+            sim = Simulation(sim_id,
+                             sim_experiment_id,
+                             sim_owner,
+                             experiment_configuration=sim_experiment_configuration,
+                             main_script=sim_main_script,
+                             state=sim_state,
+                             ctx_id=ctx_id,
+                             token=token)
+            simulations.append(sim)
 
         sim.state = "initialized"  # initialized transition
 

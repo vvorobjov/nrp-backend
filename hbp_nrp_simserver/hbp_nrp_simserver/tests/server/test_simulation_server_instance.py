@@ -148,6 +148,15 @@ class TestSimulationServerInstance(unittest.TestCase):
         self.assertTrue(self.lifecycle_mock.failed.called)  # DO CALL failed()
         self.assertTrue(self.open_mock.return_value.close.called)
 
+    def test_monitor_thread_unknown_exit_code(self):
+        # An exit code outside ServerProcessExitCodes (e.g. 127 'command not found')
+        # must not crash the monitor thread: failed() and the logfile cleanup must
+        # still run instead of the ValueError from ServerProcessExitCodes(127).
+        self._monitor_thread_test(fail_cause=127, event_is_set=False)
+
+        self.assertTrue(self.lifecycle_mock.failed.called)  # DO CALL failed()
+        self.assertTrue(self.open_mock.return_value.close.called)
+
     def test_shutdown_not_initialized(self):
         with mock.patch.object(self.ssi, "_blocking_termination") as bt_mock:
             self.ssi.shutdown()
