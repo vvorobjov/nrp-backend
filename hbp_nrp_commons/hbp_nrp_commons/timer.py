@@ -55,7 +55,7 @@ class Timer(Thread):
         Thread.__init__(self,
                         **kwargs)
         
-        self.setDaemon(kwargs.get("daemon", True))
+        self.daemon = kwargs.get("daemon", True)
         self.interval = interval
         self.callback = callback
 
