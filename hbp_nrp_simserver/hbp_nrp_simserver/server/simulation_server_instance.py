@@ -189,10 +189,11 @@ class SimulationServerInstance:
 
         # terminated with an exit code.
         # positive integers can be ServerProcessExitCodes or some other exit code
-        if exited_with_server_error := (return_code > 0):
-            return_code_name = sim_server.ServerProcessExitCodes(return_code).name
-        else:
-            return_code_name = str(return_code)
+        # (e.g. 126/127 from the shell). Resolving the enum name is deferred to the
+        # guarded region below: an unknown code makes ServerProcessExitCodes() raise
+        # ValueError, and doing it here (before the try/finally) would kill this daemon
+        # monitor thread without ever calling failed() nor closing the logfile.
+        exited_with_server_error = return_code > 0
 
         try:
             if received_alien_signal or exited_with_server_error:
@@ -200,13 +201,23 @@ class SimulationServerInstance:
                 # lifecycle will call self.shutdown()
 
                 if not self.__terminating_process_event.is_set():
-                    # NOTE 
+                    # NOTE
                     # failed should never be called if the sim process has been stopped by us!
                     # It will cause a deadlock (unless there is a timeout on joining this thread)
                     # since the lifecycle will never complete the stopped transition
                     # while trying to join this thread and thus will get stuck trying to call failed.
                     self._lifecycle.failed()
         finally:
+            # defensively resolve the exit code name; codes outside
+            # ServerProcessExitCodes (e.g. 126/127) must not raise here
+            if exited_with_server_error:
+                try:
+                    return_code_name = sim_server.ServerProcessExitCodes(return_code).name
+                except ValueError:
+                    return_code_name = str(return_code)
+            else:
+                return_code_name = str(return_code)
+
             logger.debug("Simulation Server has exited with code: '%s'. Simulation ID: '%s'",
                          return_code_name, self.sim_id)
             # clean up sim process
