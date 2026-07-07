@@ -31,7 +31,9 @@ __author__ = 'NRP software team, Oliver Denninger'
 from flask_restful import reqparse
 from flask import request
 import logging
-from functools import lru_cache
+import threading
+
+from cachetools import TTLCache
 
 import hbp_nrp_backend.storage_client_api.storage_client as storage_client
 
@@ -50,6 +52,21 @@ class UserAuthentication:
     DEFAULT_OWNER = "default-owner"
     NO_TOKEN = "no_token"
     client = storage_client.StorageClient()
+
+    # Auth lookups are memoized in bounded TTL caches instead of an unbounded
+    # functools.lru_cache. The TTL makes revoked/expired tokens stop resolving
+    # once their entry ages out, and the size bound keeps the cache from growing
+    # without limit. Crucially, only successful lookups are stored: transient
+    # storage/proxy errors are never cached, so a temporary failure can no longer
+    # pin a user to "unauthenticated" (or to a stale authorization) for the whole
+    # process lifetime.
+    AUTH_CACHE_TTL = 300  # seconds; revocations take effect within this window
+    AUTH_CACHE_MAXSIZE = 1024
+
+    _token_owner_cache = TTLCache(maxsize=AUTH_CACHE_MAXSIZE, ttl=AUTH_CACHE_TTL)
+    _experiment_access_cache = TTLCache(maxsize=AUTH_CACHE_MAXSIZE, ttl=AUTH_CACHE_TTL)
+    # TTLCache is not thread-safe (reads expire entries too); guard every access.
+    _cache_lock = threading.Lock()
 
     @staticmethod
     def get_header(header_name, default_value):
@@ -92,20 +109,35 @@ class UserAuthentication:
             return token_field
 
     @staticmethod
-    @lru_cache()
     def get_token_owner(token):
         """
         Gets the owner of an authentication token
 
+        The result is memoized in a bounded TTL cache. Only a successful, non-empty
+        resolution is cached; a transient error or an unresolved token returns None
+        without being cached, so a temporary failure cannot pin the token to
+        "unauthenticated". A cached owner ages out after ``AUTH_CACHE_TTL`` seconds
+        so that revoked/expired tokens stop resolving.
+
         :param token: The authentication token
-        :return: The user's id
+        :return: The user's id, or None if it cannot be resolved
         """
+        with UserAuthentication._cache_lock:
+            if token in UserAuthentication._token_owner_cache:
+                return UserAuthentication._token_owner_cache[token]
+
         try:
             user = UserAuthentication.client.get_user(token)
-            return user['id'] if user else None
+            owner = user['id'] if user else None
         # pylint: disable=broad-except
         except (ValueError, ConnectionError):
             return None
+
+        if owner is not None:
+            with UserAuthentication._cache_lock:
+                UserAuthentication._token_owner_cache[token] = owner
+
+        return owner
 
     @staticmethod
     def get_user():
@@ -127,10 +159,15 @@ class UserAuthentication:
         return token_owner if token_owner else username
 
     @staticmethod
-    @lru_cache()
     def __user_can_access_experiment(token, context_id, experiment_id):
         """
         Checkis if a user can access a simulation.
+
+        The result is memoized in a bounded TTL cache. Only the outcome of a
+        successful lookup is cached; if the storage call raises (transient
+        error) nothing is cached, so a temporary failure cannot lock a user out
+        of (or into) an experiment for the process lifetime. Cached entries age
+        out after ``AUTH_CACHE_TTL`` seconds so revocations take effect.
 
         :param token: The authentication token
         :param context_id: Optional context idenfifier
@@ -141,11 +178,22 @@ class UserAuthentication:
         if token == UserAuthentication.NO_TOKEN:
             return False
 
+        cache_key = (token, context_id, experiment_id)
+        with UserAuthentication._cache_lock:
+            if cache_key in UserAuthentication._experiment_access_cache:
+                return UserAuthentication._experiment_access_cache[cache_key]
+
         try:
-            return UserAuthentication.client.can_access_experiment(token, context_id, experiment_id)
+            can_access = UserAuthentication.client.can_access_experiment(
+                token, context_id, experiment_id)
         # pylint: disable=broad-except
         except Exception:
             return False
+
+        with UserAuthentication._cache_lock:
+            UserAuthentication._experiment_access_cache[cache_key] = can_access
+
+        return can_access
 
     @staticmethod
     def can_view(simulation):
