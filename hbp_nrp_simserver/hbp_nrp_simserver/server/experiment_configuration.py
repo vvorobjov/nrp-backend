@@ -50,15 +50,21 @@ def validate(exp_config: type_class) -> type_class:
     Validate and set default for exp_config
     :raises ValueError: when an invalid filed is found
     """
+    # The three rules below are independent: chaining them with if/elif made
+    # them mutually exclusive, so a config that already had SimulationTimeout
+    # would skip both the SimulationTimestep default and the EngineConfigs
+    # check, turning validation into a no-op. Each rule gets its own `if`.
+
     # must have SimulationTimeout otherwise set default
     if not hasattr(exp_config, "SimulationTimeout"):
         setattr(exp_config, "SimulationTimeout", 0)
+
     # must have SimulationTimestep otherwise set default
-    elif not hasattr(exp_config, "SimulationTimestep"):
+    if not hasattr(exp_config, "SimulationTimestep"):
         setattr(exp_config, "SimulationTimestep", 0.01)
 
     # must have EngineConfigs otherwise raise
-    elif not hasattr(exp_config, "EngineConfigs"):
+    if not hasattr(exp_config, "EngineConfigs"):
         raise ValueError("No EngineConfigs in experiment configuration")
 
     # must have datatransfer_grpc_engine otherwise raise
