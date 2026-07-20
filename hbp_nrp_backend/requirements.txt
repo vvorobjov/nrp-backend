@@ -14,3 +14,7 @@ cryptography>=42.0
 # Bounded TTL cache for auth-token / experiment-access memoization
 # (replaces the unbounded functools.lru_cache that cached failures forever).
 cachetools>=5.0,<8
+# pytz (Europe/Zurich clone timestamps in hbp_nrp_backend + hbp_nrp_simserver)
+# was previously pulled in transitively by the now-removed Flask-RESTful; pin it
+# explicitly so the runtime venv still ships it.
+pytz>=2022.1
