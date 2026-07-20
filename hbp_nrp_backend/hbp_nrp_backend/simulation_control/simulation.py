@@ -33,7 +33,7 @@ __author__ = 'NRP software team, Georg Hinkel'
 import datetime
 import logging
 from typing import Optional
-from flask_restful import fields
+import marshmallow as ma
 
 from hbp_nrp_commons.simulation_lifecycle import SimulationLifecycle
 import hbp_nrp_simserver.server.simulation_server_instance as simserver
@@ -248,17 +248,20 @@ class Simulation:
         return self.__mqtt_topics_prefix
 
 
-    # for use with marshal or marshal_with
+    # Marshmallow field templates mapping REST response keys to Simulation
+    # attributes. Kept as a plain dict so the mapping stays introspectable;
+    # SimulationSchema (built from it below) is what Flask-Smorest dumps.
     resource_fields = {
-        'state': fields.String(attribute='state'),
-        'simulationID': fields.Integer(attribute='sim_id'),  # NOTE change in case of new sim_id type
-        'experimentConfiguration': fields.String(attribute='experiment_configuration'),
-        'mainScript': fields.String(attribute='main_script'),
-        'owner': fields.String(attribute='owner'),
-        'creationDate': fields.String(attribute=lambda x: x.creation_date),
-        'experimentID': fields.String(attribute='experiment_id'),
-        'ctxId': fields.String(attribute='ctx_id'),
-        'MQTTPrefix': fields.String(attribute='mqtt_topics_prefix'),
+        'state': ma.fields.String(attribute='state'),
+        # NOTE change in case of new sim_id type
+        'simulationID': ma.fields.Integer(attribute='sim_id'),
+        'experimentConfiguration': ma.fields.String(attribute='experiment_configuration'),
+        'mainScript': ma.fields.String(attribute='main_script'),
+        'owner': ma.fields.String(attribute='owner'),
+        'creationDate': ma.fields.String(attribute='creation_date'),
+        'experimentID': ma.fields.String(attribute='experiment_id'),
+        'ctxId': ma.fields.String(attribute='ctx_id'),
+        'MQTTPrefix': ma.fields.String(attribute='mqtt_topics_prefix'),
     }
 
     required = ['state',
@@ -267,4 +270,10 @@ class Simulation:
                 'experimentID']
 
     required_request_fields = ["experimentID"]
+
+
+# Schema used by Flask-Smorest @blp.response to serialize Simulation responses.
+# Derived from Simulation.resource_fields so the field/attribute mapping has a
+# single source of truth.
+SimulationSchema = ma.Schema.from_dict(Simulation.resource_fields, name="SimulationSchema")
 

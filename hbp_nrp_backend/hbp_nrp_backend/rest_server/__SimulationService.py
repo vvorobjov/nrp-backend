@@ -32,23 +32,26 @@ __author__ = 'NRP software team, GeorgHinkel, Ugo Albanese'
 import logging
 import threading
 
-from flask import request
-from flask_restful import Resource, marshal_with
+from flask import request, url_for
+from flask.views import MethodView
+from flask_smorest import Blueprint
 from hbp_nrp_commons.simulation_lifecycle import SimulationLifecycle
 
 from . import ErrorMessages, docstring_parameter
-from . import SimulationControl
-from . import api
 from .. import NRPServicesClientErrorException
-from ..simulation_control import simulations, Simulation, sim_id_type
+from ..simulation_control import simulations, Simulation, SimulationSchema, sim_id_type
 from ..user_authentication import UserAuthentication
 
 # pylint: disable=R0201
 
 logger = logging.getLogger(__name__)
 
+blp = Blueprint('simulation_service', __name__,
+                description='Create and list simulations')
 
-class SimulationService(Resource):
+
+@blp.route('/simulation')
+class SimulationService(MethodView):
     """
     The service to create simulations
     """
@@ -57,7 +60,7 @@ class SimulationService(Resource):
 
     @docstring_parameter(ErrorMessages.SIMULATION_ANOTHER_RUNNING_409,
                          ErrorMessages.SIMULATION_CREATED_201)
-    @marshal_with(Simulation.resource_fields)
+    @blp.response(201, SimulationSchema)
     def post(self):
         # pylint: disable=R0914
         """
@@ -124,10 +127,11 @@ class SimulationService(Resource):
         sim.state = "initialized"  # initialized transition
 
         # 'Location' is the URL at which the newly created resource is available
-        return sim, 201, {'Location': api.url_for(SimulationControl, sim_id=sim_id)} 
+        return sim, 201, {
+            'Location': url_for('simulation_control.SimulationControl', sim_id=sim_id)}
 
     @docstring_parameter(ErrorMessages.SIMULATIONS_RETRIEVED_200)
-    @marshal_with(Simulation.resource_fields)
+    @blp.response(200, SimulationSchema(many=True))
     def get(self):
         """
         Gets the list of simulations on this server.

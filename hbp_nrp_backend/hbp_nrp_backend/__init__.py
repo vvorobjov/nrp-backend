@@ -1,7 +1,8 @@
 """
 This package contains the python code to run the REST server.
 
-It leverages the Flask REST and Flask-restful frameworks.
+It leverages the Flask (3.x) and Flask-Smorest frameworks; request/response
+bodies are (de)serialized with marshmallow schemas.
 
 """
 
