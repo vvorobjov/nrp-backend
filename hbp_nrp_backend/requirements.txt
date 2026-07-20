@@ -1,15 +1,14 @@
 hbp-nrp-commons
-# Web stack — bumped under EBR2-46 first slice (Python 3.8 still).
-# Off the Werkzeug<=2.1.2 ceiling that has blocked further upgrades
-# since 2022. Flask 2.3+ is the maximum compatible with the still-
-# pinned Python 3.8 base image; Flask 3 + the Flask-RESTful retire
-# move to Flask-Smorest land in EBR2-46b.
-Flask>=2.3,<3
-Werkzeug>=2.3,<3
-Flask-RESTful>=0.3.10
-# urllib3 dropped the [secure] extras-name in 2.x; keep on the 1.26
-# series so we can stay on Python 3.8 + the existing requests pin.
-urllib3>=1.26,<2
+# Web stack (EBR2-65). Off the Flask 2 / Werkzeug 2 line and the retired
+# Flask-RESTful: the REST layer now uses Flask-Smorest (flask.views.MethodView
+# blueprints + marshmallow schemas). Python 3.11 (EBR2-64) stays gated on the
+# nrp-core base image shipping 3.11, so it is out of scope here.
+Flask>=3,<4
+Werkzeug>=3,<4
+flask-smorest>=0.44,<1
+marshmallow>=3.19,<5
+# urllib3 2.x; requests>=2.32 already supports it on the Python 3.10 base.
+urllib3>=2,<3
 requests>=2.32,<3
 cryptography>=42.0
 # Bounded TTL cache for auth-token / experiment-access memoization
