@@ -39,8 +39,8 @@ RUN sudo chown ${NRP_USER}:${NRP_GROUP} ${STORAGE_PATH}
 
 # nginx is started by entrypoint.sh and listens on 8090 (per the
 # nrp-user-scripts/config_files/nginx.docker/conf.d/nrp-services.conf
-# that gets mounted in). /version is an unauthenticated Flask-RESTful
-# resource (api.add_resource(Version, '/version')), suitable for a
+# that gets mounted in). /version is an unauthenticated Flask-Smorest
+# MethodView (the 'version' blueprint's Version.get), suitable for a
 # liveness probe. `localhost` resolves to both 127.0.0.1 and ::1 via
 # /etc/hosts, so the probe survives an IPv6-only bind.
 ENV BACKEND_HEALTHCHECK_URL=http://localhost:8090/version
