@@ -28,7 +28,6 @@ calling the service.
 
 __author__ = 'NRP software team, Oliver Denninger'
 
-from flask_restful import reqparse
 from flask import request
 import logging
 import threading
@@ -77,10 +76,7 @@ class UserAuthentication:
         :param default_value: If nothing is found, this will be returned
         :return: The value of the header_name header or if not found default_value
         """
-        request_parser = reqparse.RequestParser()
-        request_parser.add_argument(header_name,
-                                    type=str, location='headers')
-        header_value = request_parser.parse_args(request)[header_name]
+        header_value = request.headers.get(header_name)
 
         return header_value if header_value is not None else default_value
 
