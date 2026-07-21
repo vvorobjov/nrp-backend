@@ -9,7 +9,7 @@ REST Server
 
 The REST Server implemented in the package :code:`hbp_nrp_backend`.
 It takes care of exposing the execution of npr-core based experiment as REST resources.
-It leverages the `Flask <https://flask.palletsprojects.com/>`_  and `Flask-Restful <https://flask-restful.readthedocs.io>`_ frameworks
+It leverages the `Flask <https://flask.palletsprojects.com/>`_  and `Flask-Smorest <https://flask-smorest.readthedocs.io>`_ (with `marshmallow <https://marshmallow.readthedocs.io>`_) frameworks
 to implement REST Services that can create, manage, and stop experiments (see :ref:`backend-rest-api`).
 
 One of its responsibilities is to manage the local execution environment in the context of which the :code:`Simulation Server` will run the experiment.
