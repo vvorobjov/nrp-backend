@@ -26,10 +26,11 @@ This module contains the REST implementation for the simulation control
 """
 __author__ = 'NRP software team, Georg Hinkel, Ugo Albanese'
 
-from flask_restful import Resource, abort, marshal_with
+from flask.views import MethodView
+from flask_smorest import Blueprint
 
 from hbp_nrp_backend.rest_server import ErrorMessages, docstring_parameter
-from hbp_nrp_backend.simulation_control import Simulation, get_simulation
+from hbp_nrp_backend.simulation_control import SimulationSchema, get_simulation
 from hbp_nrp_backend.user_authentication import UserAuthentication
 
 from hbp_nrp_backend import NRPServicesWrongUserException, NRPServicesClientErrorException
@@ -37,14 +38,19 @@ from hbp_nrp_backend import NRPServicesWrongUserException, NRPServicesClientErro
 
 # pylint: disable=no-self-use
 
-class SimulationControl(Resource):
+blp = Blueprint('simulation_control', __name__,
+                description='Retrieve a single simulation')
+
+
+@blp.route('/simulation/<int:sim_id>')
+class SimulationControl(MethodView):
     """
     The resource to get a simulation
     """
     @docstring_parameter(ErrorMessages.SIMULATION_NOT_FOUND_404,
                          ErrorMessages.SIMULATION_PERMISSION_401_VIEW,
                          ErrorMessages.SIMULATION_RETRIEVED_200)
-    @marshal_with(Simulation.resource_fields)
+    @blp.response(200, SimulationSchema)
     def get(self, sim_id):
         """
         Gets the simulation with the specified simulation id

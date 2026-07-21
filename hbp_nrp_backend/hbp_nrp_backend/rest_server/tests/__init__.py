@@ -12,7 +12,6 @@ class RestTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        app.before_first_request_funcs = []
         self.client = app.test_client()
 
     @classmethod

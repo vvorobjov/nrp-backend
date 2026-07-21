@@ -29,8 +29,11 @@ for retrieving the versions of all NRP python component packages.
 __author__ = 'NRP software team'
 
 import importlib
+import json
 
-from flask_restful import Resource
+from flask import current_app
+from flask.views import MethodView
+from flask_smorest import Blueprint
 
 from . import ErrorMessages, docstring_parameter
 from .RestSyncMiddleware import RestSyncMiddleware
@@ -42,7 +45,12 @@ COMPONENTS_PACKAGES = {c_p_name: importlib.import_module(c_p_name)
 VERSIONS = {name: getattr(module, "__version__")
             for name, module in COMPONENTS_PACKAGES.items()}
 
-class Version(Resource):
+blp = Blueprint('version', __name__,
+                description='Retrieve NRP component versions')
+
+
+@blp.route('/version')
+class Version(MethodView):
     """
     Implements the REST service providing the user with the versions
     of all NRP python COMPONENTS_PACKAGES_NAMES.
@@ -58,5 +66,9 @@ class Version(Resource):
 
         :status 200: {0}
         """
-
-        return VERSIONS, 200
+        # Serialize VERSIONS explicitly (rather than via @blp.response/jsonify)
+        # to preserve the exact, insertion-ordered JSON body relied on by the
+        # /version healthcheck and clients.
+        return current_app.response_class(json.dumps(VERSIONS),
+                                          status=200,
+                                          mimetype='application/json')

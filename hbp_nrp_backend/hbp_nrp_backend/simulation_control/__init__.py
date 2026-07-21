@@ -11,7 +11,7 @@ timezone = pytz.timezone('Europe/Zurich')
 
 sim_id_type = int # before importing Simulation
 
-from hbp_nrp_backend.simulation_control.simulation import Simulation
+from hbp_nrp_backend.simulation_control.simulation import Simulation, SimulationSchema
 
 # the list of simulations created by this server
 simulations: List[Simulation] = []

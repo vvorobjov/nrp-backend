@@ -27,8 +27,10 @@ This module contains the REST implementation for the control of the simulation s
 
 __author__ = 'NRP software team, Georg Hinkel'
 
+import marshmallow as ma
 from flask import request
-from flask_restful import Resource, marshal_with, fields
+from flask.views import MethodView
+from flask_smorest import Blueprint
 from hbp_nrp_commons.simulation_lifecycle import SimulationLifecycle
 
 from . import ErrorMessages
@@ -42,7 +44,19 @@ from ..user_authentication import UserAuthentication
 # pylint: disable=R0201
 
 
-class SimulationState(Resource):
+class SimulationStateSchema(ma.Schema):
+    """
+    Marshmallow schema for the simulation state response body.
+    """
+    state = ma.fields.String(attribute='state')
+
+
+blp = Blueprint('simulation_state', __name__,
+                description='Control the state of the simulation')
+
+
+@blp.route('/simulation/<int:sim_id>/state')
+class SimulationState(MethodView):
     """
     The resource to control the state of the simulation.
 
@@ -54,20 +68,14 @@ class SimulationState(Resource):
         """
         State of a simulation. Allowed values are:
         'hbp_nrp_commons.sim_lifecycle.SimulationLifecycle.STATES'
-
-        Only used for marshaling responses with flask_restful.marshal_with
         """
 
-        resource_fields = {
-            'state': fields.String()
-        }
-        required = ['state']
         required_request_fields = ["state"]
 
     @docstring_parameter(ErrorMessages.SIMULATION_NOT_FOUND_404,
                          ErrorMessages.SIMULATION_PERMISSION_401_VIEW,
                          ErrorMessages.STATE_RETRIEVED_200)
-    @marshal_with(_State.resource_fields)
+    @blp.response(200, SimulationStateSchema)
     def get(self, sim_id):
         """
         Gets the state of the simulation with the specified simulation id.
@@ -92,14 +100,14 @@ class SimulationState(Resource):
             raise NRPServicesWrongUserException(
                 message=ErrorMessages.SIMULATION_PERMISSION_401_VIEW)
 
-        # NOTE "state" attribute of "simulation" gets returned thanks to marshal_with
+        # NOTE the "state" attribute of "simulation" is serialized by SimulationStateSchema
         return simulation, 200
 
     @docstring_parameter(ErrorMessages.SIMULATION_NOT_FOUND_404,
                          ErrorMessages.SIMULATION_PERMISSION_401,
                          ErrorMessages.INVALID_STATE_TRANSITION_400,
                          ErrorMessages.STATE_APPLIED_200)
-    @marshal_with(_State.resource_fields)
+    @blp.response(200, SimulationStateSchema)
     def put(self, sim_id: str):
         """
         Sets the simulation with the given name into a new state. Allowed values are:

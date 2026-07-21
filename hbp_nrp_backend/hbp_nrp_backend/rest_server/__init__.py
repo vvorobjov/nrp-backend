@@ -5,7 +5,9 @@ This package contains the implementation of the REST server to control experimen
 __author__ = 'NRP software team, Georg Hinkel, Ugo Albanese'
 
 from flask import Flask
-from flask_restful import Api
+from flask_smorest import Api
+
+from hbp_nrp_backend import __version__
 
 
 def docstring_parameter(*sub):
@@ -27,22 +29,6 @@ def docstring_parameter(*sub):
         return obj
 
     return dec
-
-
-class NRPServicesExtendedApi(Api):
-    """
-    Extend Flask Restful error handling mechanism so that we can still use original Flask error
-    handlers (defined in __ErrorHandlers.py)
-    """
-
-    def error_router(self, original_handler, e):
-        """
-        Route the error
-
-        :param original_handler: Flask handler
-        :param e: Error
-        """
-        return original_handler(e)
 
 
 class ErrorMessages:
@@ -74,24 +60,32 @@ class ErrorMessages:
 
 
 app = Flask(__name__, static_folder='')
-api = NRPServicesExtendedApi(app)
+
+# Flask-Smorest / OpenAPI metadata. The spec is built for documentation only;
+# OPENAPI_URL_PREFIX is intentionally left unset so no extra HTTP routes are
+# added and the public URL surface is unchanged.
+app.config['API_TITLE'] = 'NRP Backend REST API'
+app.config['API_VERSION'] = __version__
+app.config['OPENAPI_VERSION'] = '3.0.3'
+
+api = Api(app)
 
 # Import REST APIs
 # pylint: disable=W0401
-# importing the class will install the handlers
+# importing the module will install the error handlers
 import hbp_nrp_backend.rest_server.__ErrorHandlers
 
-from .__SimulationControl import SimulationControl
-from .__SimulationService import SimulationService
-from .__SimulationState import SimulationState
+from .__SimulationControl import blp as simulation_control_blp
+from .__SimulationService import blp as simulation_service_blp
+from .__SimulationState import blp as simulation_state_blp
 
-from .__Version import Version
+from .__Version import blp as version_blp
 
-# Register /simulation
-api.add_resource(SimulationService, '/simulation')
- # NOTE change in case of new sim_id type
-api.add_resource(SimulationControl, '/simulation/<int:sim_id>')
-api.add_resource(SimulationState, '/simulation/<int:sim_id>/state')
+# Register /simulation and /simulation/<sim_id>[/state]
+api.register_blueprint(simulation_service_blp)
+# NOTE change route in case of new sim_id type
+api.register_blueprint(simulation_control_blp)
+api.register_blueprint(simulation_state_blp)
 
 # Register /version
-api.add_resource(Version, '/version')
+api.register_blueprint(version_blp)
