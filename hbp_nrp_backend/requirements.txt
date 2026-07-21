@@ -6,7 +6,7 @@ hbp-nrp-commons
 Flask>=3,<4
 Werkzeug>=3,<4
 flask-smorest>=0.44,<1
-marshmallow>=3.19,<5
+marshmallow>=3.19,<4
 # urllib3 2.x; requests>=2.32 already supports it on the Python 3.10 base.
 urllib3>=2,<3
 requests>=2.32,<3
